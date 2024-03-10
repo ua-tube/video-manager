@@ -1,0 +1,124 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Creator {
+  id           String  @id
+  displayName  String  @map("display_name")
+  nickname     String
+  thumbnailUrl String? @map("thumbnail_url")
+  Videos       Video[]
+
+  @@map("creators")
+}
+
+model Video {
+  id               String          @id @default(uuid()) @db.Uuid
+  creatorId        String          @map("creator_id")
+  Creator          Creator         @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  title            String          @db.VarChar(256)
+  description      String?
+  tags             String?
+  thumbnailId      String?         @map("thumbnail_id") @db.Uuid
+  status           VideoStatus
+  visibility       VideoVisibility
+  allowedToPublish Boolean         @map("allowed_to_publish")
+  isPublished      Boolean         @map("is_published")
+
+  processingStatus      VideoProcessingStatus @map("processing_status")
+  originalVideoFileId   String                @default(uuid()) @map("original_video_file_id") @db.Uuid
+  originalVideoFileName String?               @map("original_video_file_name")
+  originalVideoUrl      String?               @map("original_video_url")
+  ProcessedVideos       ProcessedVideo[]
+
+  thumbnailStatus       VideoThumbnailStatus   @map("thumbnail_status")
+  Thumbnails            VideoThumbnail[]
+  VideoPreviewThumbnail VideoPreviewThumbnail?
+
+  Metrics       VideoMetrics?
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  publishedAt   DateTime?     @map("published_at") @db.Timestamptz(6)
+  unpublishedAt DateTime?     @map("unpublished_at") @db.Timestamptz(6)
+
+  @@map("videos")
+}
+
+model VideoMetrics {
+  videoId       String @id @default(uuid()) @db.Uuid
+  Video         Video  @relation(fields: [videoId], references: [id])
+  viewsCount    BigInt @default(0) @map("views_count")
+  commentsCount BigInt @default(0) @map("comments_count")
+  likesCount    BigInt @default(0) @map("likes_count")
+  dislikesCount BigInt @default(0) @map("dislikes_count")
+
+  @@map("video_metrics")
+}
+
+model ProcessedVideo {
+  id          String @id @default(uuid()) @db.Uuid
+  videoFileId String @map("video_file_id") @db.Uuid
+  label       String
+  url         String
+  videoId     String @map("video_id") @db.Uuid
+  Video       Video  @relation(fields: [videoId], references: [id])
+
+  @@map("processed_videos")
+}
+
+model VideoThumbnail {
+  imageFileId String @id @map("image_file_id") @db.Uuid
+  label       String
+  url         String
+  videoId     String @map("video_id") @db.Uuid
+  Video       Video  @relation(fields: [videoId], references: [id])
+
+  @@map("video_thumbnails")
+}
+
+model VideoPreviewThumbnail {
+  imageFileId String @id @map("image_file_id") @db.Uuid
+  url         String
+  videoId     String @unique @default(uuid()) @db.Uuid
+  Video       Video  @relation(fields: [videoId], references: [id])
+
+  @@map("video_preview_thumbnails")
+}
+
+enum VideoStatus {
+  Created
+  Registered
+  RegistrationFailed
+  Unregistered
+
+  @@map("video_statuses")
+}
+
+enum VideoVisibility {
+  Private
+  Unlisted
+  Public
+
+  @@map("video_visibilities")
+}
+
+enum VideoProcessingStatus {
+  WaitingForUserUpload
+  VideoUploaded
+  VideoBeingProcessed
+  VideoProcessed
+  VideoProcessingFailed
+
+  @@map("video_processing_statuses")
+}
+
+enum VideoThumbnailStatus {
+  Waiting
+  Processed
+
+  @@map("video_thumbnail_statuses")
+}
