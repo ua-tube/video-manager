@@ -21,8 +21,8 @@ jobs:
         with:
           node-version: 20.11.0
 
-      - name: Install auth service dependencies
+      - name: Install service dependencies
         run: npm i
 
-      - name: Build auth service
+      - name: Build service
         run: npm run build
