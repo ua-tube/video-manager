@@ -18,17 +18,16 @@ model Creator {
 }
 
 model Video {
-  id               String          @id @default(uuid()) @db.Uuid
-  creatorId        String          @map("creator_id")
-  Creator          Creator         @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  title            String          @db.VarChar(256)
-  description      String?
-  tags             String?
-  thumbnailId      String?         @map("thumbnail_id") @db.Uuid
-  status           VideoStatus
-  visibility       VideoVisibility
-  allowedToPublish Boolean         @map("allowed_to_publish")
-  isPublished      Boolean         @map("is_published")
+  id          String          @id @default(uuid()) @db.Uuid
+  creatorId   String          @map("creator_id")
+  Creator     Creator         @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  title       String          @db.VarChar(256)
+  description String?
+  tags        String?
+  thumbnailId String?         @map("thumbnail_id") @db.Uuid
+  status      VideoStatus
+  visibility  VideoVisibility
+  isPublished Boolean         @map("is_published")
 
   processingStatus      VideoProcessingStatus @map("processing_status")
   originalVideoFileId   String                @default(uuid()) @map("original_video_file_id") @db.Uuid
@@ -40,11 +39,11 @@ model Video {
   Thumbnails            VideoThumbnail[]
   VideoPreviewThumbnail VideoPreviewThumbnail?
 
-  Metrics       VideoMetrics?
-  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
-  publishedAt   DateTime?     @map("published_at") @db.Timestamptz(6)
-  unpublishedAt DateTime?     @map("unpublished_at") @db.Timestamptz(6)
+  Metrics   VideoMetrics?
+  createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  @@index([isPublished, visibility])
   @@map("videos")
 }
 
@@ -72,7 +71,6 @@ model ProcessedVideo {
 
 model VideoThumbnail {
   imageFileId String @id @map("image_file_id") @db.Uuid
-  label       String
   url         String
   videoId     String @map("video_id") @db.Uuid
   Video       Video  @relation(fields: [videoId], references: [id])

@@ -5,7 +5,7 @@ import {
   OnApplicationBootstrap,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma';
-import { UpsertCreatorDto } from './dto';
+import { UpsertCreator } from './types';
 import { ClientRMQ } from '@nestjs/microservices';
 import { USERS_SVC } from '../common/constants';
 
@@ -17,7 +17,8 @@ export class CreatorsService implements OnApplicationBootstrap {
     private readonly prisma: PrismaService,
     @Inject(USERS_SVC)
     private readonly usersClient: ClientRMQ,
-  ) {}
+  ) {
+  }
 
   onApplicationBootstrap(): void {
     this.usersClient
@@ -26,39 +27,40 @@ export class CreatorsService implements OnApplicationBootstrap {
       .catch(() => this.logger.error(`${USERS_SVC} connection failed`));
   }
 
-  async upsertCreator(dto: UpsertCreatorDto) {
+  async upsertCreator(payload: UpsertCreator) {
     const creator = await this.prisma.creator.findUnique({
-      where: { id: dto.id },
+      where: { id: payload.id },
       select: { id: true },
     });
 
     if (creator) {
       try {
         await this.prisma.creator.update({
-          where: { id: dto.id },
+          where: { id: payload.id },
           data: {
-            displayName: dto.displayName,
-            nickname: dto.nickname,
+            displayName: payload.displayName,
+            nickname: payload.nickname,
           },
         });
-        this.logger.log(`Creator (${dto.id}) is updated`);
+        this.logger.log(`Creator (${payload.id}) is updated`);
       } catch {
         this.logger.error(
-          `An error occurred when updating creator (${dto.id})`,
+          `An error occurred when updating creator (${payload.id})`,
         );
       }
     } else {
       try {
-        await this.prisma.creator.create({ data: dto });
+        await this.prisma.creator.create({ data: payload });
         this.usersClient.emit('creator_creation_success', {
-          userId: dto.id,
-          nickname: dto.nickname,
+          userId: payload.id,
+          nickname: payload.nickname,
         });
-        this.logger.log(`Creator (${dto.id}) is created`);
+        this.logger.log(`Creator (${payload.id}) is created`);
+        return { status: 1 }
       } catch {
-        this.usersClient.emit('creator_creation_failed', { id: dto.id });
+        this.usersClient.emit('creator_creation_failed', { id: payload.id });
         this.logger.error(
-          `An error occurred when creating creator (${dto.id})`,
+          `An error occurred when creating creator (${payload.id})`,
         );
       }
     }

@@ -69,7 +69,6 @@ CREATE TABLE "processed_videos" (
 -- CreateTable
 CREATE TABLE "video_thumbnails" (
     "image_file_id" UUID NOT NULL,
-    "label" TEXT NOT NULL,
     "url" TEXT NOT NULL,
     "video_id" UUID NOT NULL,
 

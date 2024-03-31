@@ -16,7 +16,7 @@ import { LoggingInterceptor } from './common/interceptors';
         CLIENT_URL: Joi.string().required(),
         HTTP_HOST: Joi.string().required(),
         HTTP_PORT: Joi.number().required(),
-        SOCKET_PORT: Joi.number().required(),
+        WS_PORT: Joi.number().required(),
         AUTH_SVC_URL: Joi.string().required(),
         REDIS_URL: Joi.string().required(),
         RABBITMQ_URL: Joi.string().required(),

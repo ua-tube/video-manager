@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
 import { VideoManagerService } from './video-manager.service';
-import { VideoManagerController } from './video-manager.controller';
 import { PrismaModule } from '../prisma';
 import { JwtModule } from '@nestjs/jwt';
 import { VideoManagerGateway } from './video-manager.gateway';
 import { ConfigService } from '@nestjs/config';
+import { HealthController, RmqController, VideoManagerController } from './controllers';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
   imports: [
@@ -26,9 +27,10 @@ import { ConfigService } from '@nestjs/config';
         },
       }),
     }),
+    EventEmitterModule.forRoot(),
     PrismaModule,
   ],
-  controllers: [VideoManagerController],
+  controllers: [VideoManagerController, RmqController, HealthController],
   providers: [VideoManagerService, VideoManagerGateway],
 })
 export class VideoManagerModule {}
