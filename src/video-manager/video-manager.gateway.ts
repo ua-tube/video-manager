@@ -11,20 +11,20 @@ import axios from 'axios';
 import { ConfigService } from '@nestjs/config';
 import { OnEvent } from '@nestjs/event-emitter';
 
-@WebSocketGateway(Number(process.env.WS_PORT), {
+@WebSocketGateway({
   cors: { origin: process.env.CLIENT_URL },
   transports: ['websocket', 'polling'],
   namespace: 'video-manager',
 })
 export class VideoManagerGateway
-  implements OnGatewayConnection, OnGatewayDisconnect {
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   private readonly logger = new Logger(VideoManagerGateway.name);
 
   @WebSocketServer()
   private server: Server;
 
-  constructor(private readonly configService: ConfigService) {
-  }
+  constructor(private readonly configService: ConfigService) {}
 
   async handleConnection(socket: Socket) {
     const handshakeAuthorization = socket?.handshake?.headers?.authorization;
@@ -69,7 +69,11 @@ export class VideoManagerGateway
   }
 
   @OnEvent('video_status_changed', { async: true, promisify: true })
-  async handleVideoStatusChanged(payload: { userId: string, videoId: string, status: string }) {
+  async handleVideoStatusChanged(payload: {
+    userId: string;
+    videoId: string;
+    status: string;
+  }) {
     this.logger.log(`video_status_changed emit to user (${payload.userId})`);
     this.server
       .to(this.getRoomName(payload.userId))
@@ -80,18 +84,26 @@ export class VideoManagerGateway
   }
 
   @OnEvent('thumbnail_processed', { async: true, promisify: true })
-  async handleThumbnailProcessed(payload: { userId: string, videoId: string, thumbnails: any[] }) {
+  async handleThumbnailProcessed(payload: {
+    userId: string;
+    videoId: string;
+    thumbnails: any[];
+  }) {
     this.logger.log(`thumbnail_processed emit to user (${payload.userId})`);
     this.server
       .to(this.getRoomName(payload.userId))
       .emit('thumbnail_processed', {
         videoId: payload.videoId,
-        thumbnails: payload.thumbnails
+        thumbnails: payload.thumbnails,
       });
   }
 
   @OnEvent('video_step_processed', { async: true, promisify: true })
-  async handleVideoStepProcessed(payload: { userId: string, videoId: string, label: string }) {
+  async handleVideoStepProcessed(payload: {
+    userId: string;
+    videoId: string;
+    label: string;
+  }) {
     this.logger.log(`video_step_processed emit to user (${payload.userId})`);
     this.server
       .to(this.getRoomName(payload.userId))

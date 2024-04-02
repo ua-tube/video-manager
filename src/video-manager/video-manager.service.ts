@@ -8,7 +8,12 @@ import {
 import { CreateVideoDto } from './dto';
 import { PrismaService } from '../prisma';
 import { JwtService } from '@nestjs/jwt';
-import { AddPreview, AddProcessedVideo, AddThumbnails, SetStatus } from './types';
+import {
+  AddPreview,
+  AddProcessedVideo,
+  AddThumbnails,
+  SetStatus,
+} from './types';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
@@ -19,8 +24,7 @@ export class VideoManagerService {
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
-  ) {
-  }
+  ) {}
 
   async createVideo(creatorId: string, dto: CreateVideoDto) {
     const video = await this.prisma.video.create({
@@ -81,12 +85,14 @@ export class VideoManagerService {
 
     return {
       ...video,
-      Metrics: video?.Metrics ? {
-        viewsCount: `${video.Metrics.viewsCount}`,
-        commentsCount: `${video.Metrics.commentsCount}`,
-        likesCount: `${video.Metrics.likesCount}`,
-        dislikesCount: `${video.Metrics.dislikesCount}`,
-      } : undefined,
+      Metrics: video?.Metrics
+        ? {
+            viewsCount: `${video.Metrics.viewsCount}`,
+            commentsCount: `${video.Metrics.commentsCount}`,
+            likesCount: `${video.Metrics.likesCount}`,
+            dislikesCount: `${video.Metrics.dislikesCount}`,
+          }
+        : undefined,
     };
   }
 
@@ -120,8 +126,10 @@ export class VideoManagerService {
       },
     });
 
-    videos.forEach(v => {
-      v.Metrics = v?.Metrics ? { viewsCount: `${v.Metrics.viewsCount}` } as any : undefined;
+    videos.forEach((v) => {
+      v.Metrics = v?.Metrics
+        ? ({ viewsCount: `${v.Metrics.viewsCount}` } as any)
+        : undefined;
     });
 
     return videos;
@@ -186,7 +194,7 @@ export class VideoManagerService {
     await this.prisma.$transaction(async (tx) => {
       await Promise.allSettled([
         tx.videoThumbnail.createMany({
-          data: payload.thumbnails.map(t => ({
+          data: payload.thumbnails.map((t) => ({
             videoId: payload.videoId,
             url: t.url,
             imageFileId: t.imageFileId,
@@ -204,14 +212,14 @@ export class VideoManagerService {
       select: {
         id: true,
         creatorId: true,
-        Thumbnails: true
+        Thumbnails: true,
       },
     });
 
     this.eventEmitter.emit('thumbnail_processed', {
       userId: video.creatorId,
       videoId: video.id,
-      thumbnails: video.Thumbnails
+      thumbnails: video.Thumbnails,
     });
   }
 

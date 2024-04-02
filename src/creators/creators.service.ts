@@ -17,8 +17,7 @@ export class CreatorsService implements OnApplicationBootstrap {
     private readonly prisma: PrismaService,
     @Inject(USERS_SVC)
     private readonly usersClient: ClientRMQ,
-  ) {
-  }
+  ) {}
 
   onApplicationBootstrap(): void {
     this.usersClient
@@ -40,6 +39,7 @@ export class CreatorsService implements OnApplicationBootstrap {
           data: {
             displayName: payload.displayName,
             nickname: payload.nickname,
+            thumbnailUrl: payload.thumbnailUrl
           },
         });
         this.logger.log(`Creator (${payload.id}) is updated`);
@@ -56,7 +56,6 @@ export class CreatorsService implements OnApplicationBootstrap {
           nickname: payload.nickname,
         });
         this.logger.log(`Creator (${payload.id}) is created`);
-        return { status: 1 }
       } catch {
         this.usersClient.emit('creator_creation_failed', { id: payload.id });
         this.logger.error(

@@ -1,5 +1,5 @@
 export type AddPreview = {
-  imageFileId: string
-  videoId: string
-  url: string
-}
+  imageFileId: string;
+  videoId: string;
+  url: string;
+};

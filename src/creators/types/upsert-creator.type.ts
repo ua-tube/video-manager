@@ -3,4 +3,4 @@ export type UpsertCreator = {
   displayName: string;
   nickname: string;
   thumbnailUrl?: string;
-}
+};

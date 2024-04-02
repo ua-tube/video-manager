@@ -16,8 +16,7 @@ import { AuthUserGuard } from '../../common/guards';
 
 @Controller('video-manager')
 export class VideoManagerController {
-  constructor(private readonly videoManagerService: VideoManagerService) {
-  }
+  constructor(private readonly videoManagerService: VideoManagerService) {}
 
   @UseGuards(AuthUserGuard)
   @Post('videos')
@@ -45,10 +44,8 @@ export class VideoManagerController {
   }
 
   @Put('videos')
-  setVideoInfo() {
-  }
+  setVideoInfo() {}
 
   @Delete('videos/:id')
-  unregisterVideo() {
-  }
+  unregisterVideo() {}
 }

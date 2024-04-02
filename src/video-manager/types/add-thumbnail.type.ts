@@ -1,7 +1,7 @@
 export type AddThumbnails = {
-  videoId: string
+  videoId: string;
   thumbnails: {
-    imageFileId: string
-    url: string
-  }[]
-}
+    imageFileId: string;
+    url: string;
+  }[];
+};

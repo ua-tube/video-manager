@@ -30,12 +30,11 @@ async function bootstrap() {
   app.use(helmet.noSniff());
   app.use(helmet.hidePoweredBy());
   app.use(helmet.contentSecurityPolicy());
-
   app.use(mw());
 
   app.setGlobalPrefix('/api');
-
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+  app.enableShutdownHooks();
 
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.RMQ,

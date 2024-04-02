@@ -1,15 +1,14 @@
 import { Controller } from '@nestjs/common';
 import { CreatorsService } from './creators.service';
-import { EventPattern, MessagePattern, Payload } from '@nestjs/microservices';
+import { EventPattern, Payload } from '@nestjs/microservices';
 import { UpsertCreator } from './types';
 
-@Controller('creators')
+@Controller()
 export class CreatorsController {
-  constructor(private readonly creatorsService: CreatorsService) {
-  }
+  constructor(private readonly creatorsService: CreatorsService) {}
 
-  @MessagePattern('upsert_creator')
+  @EventPattern('upsert_creator')
   async handleUpsertCreator(@Payload() payload: UpsertCreator) {
-    return this.creatorsService.upsertCreator(payload);
+    await this.creatorsService.upsertCreator(payload);
   }
 }

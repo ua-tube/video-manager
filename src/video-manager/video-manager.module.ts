@@ -4,7 +4,11 @@ import { PrismaModule } from '../prisma';
 import { JwtModule } from '@nestjs/jwt';
 import { VideoManagerGateway } from './video-manager.gateway';
 import { ConfigService } from '@nestjs/config';
-import { HealthController, RmqController, VideoManagerController } from './controllers';
+import {
+  HealthController,
+  RmqController,
+  VideoManagerController,
+} from './controllers';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
