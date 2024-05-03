@@ -5,6 +5,7 @@ import { CreatorsModule } from './creators/creators.module';
 import Joi from 'joi';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { LoggingInterceptor } from './common/interceptors';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -21,11 +22,14 @@ import { LoggingInterceptor } from './common/interceptors';
         RABBITMQ_URL: Joi.string().required(),
         RABBITMQ_QUEUE: Joi.string().required(),
         RABBITMQ_USERS_QUEUE: Joi.string().required(),
+        RABBITMQ_LIBRARY_QUEUE: Joi.string().required(),
+        RABBITMQ_COMMUNITY_QUEUE: Joi.string().required(),
         DATABASE_URL: Joi.string().required(),
       }),
     }),
     VideoManagerModule,
     CreatorsModule,
+    HealthModule
   ],
   providers: [
     {

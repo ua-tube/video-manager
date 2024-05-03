@@ -1,9 +1,9 @@
 import {
   BadRequestException,
-  ForbiddenException,
+  ForbiddenException, Inject,
   Injectable,
   Logger,
-  NotFoundException,
+  NotFoundException, OnApplicationBootstrap,
 } from '@nestjs/common';
 import { CreateVideoDto } from './dto';
 import { PrismaService } from '../prisma';
@@ -15,16 +15,39 @@ import {
   SetStatus,
 } from './types';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { COMMUNITY_SVC, LIBRARY_SVC } from '../common/constants';
+import { ClientRMQ } from '@nestjs/microservices';
+import { CreateForumEvent, UpsertVideoEvent } from '../common/events';
+import { VideoStatus, VideoVisibility } from '@prisma/client';
 
 @Injectable()
-export class VideoManagerService {
+export class VideoManagerService implements OnApplicationBootstrap {
   private readonly logger = new Logger(VideoManagerService.name);
 
   constructor(
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
+    @Inject(LIBRARY_SVC)
+    private readonly libraryClient: ClientRMQ,
+    @Inject(COMMUNITY_SVC)
+    private readonly communityClient: ClientRMQ
   ) {}
+
+  onApplicationBootstrap(): void {
+    this.libraryClient
+      .connect()
+      .then(() =>
+        this.logger.log(`${LIBRARY_SVC} connection established`),
+      )
+      .catch(() => this.logger.error(`${LIBRARY_SVC} connection failed`));
+    this.communityClient
+      .connect()
+      .then(() =>
+        this.logger.log(`${COMMUNITY_SVC} connection established`),
+      )
+      .catch(() => this.logger.error(`${COMMUNITY_SVC} connection failed`));
+  }
 
   async createVideo(creatorId: string, dto: CreateVideoDto) {
     const video = await this.prisma.video.create({
@@ -41,6 +64,8 @@ export class VideoManagerService {
     });
 
     this.logger.log(`Video (${video.id}) is created`);
+    this.syncVideo(video);
+    this.communityClient.emit('create_forum', new CreateForumEvent(video.id, creatorId));
 
     return video;
   }
@@ -231,13 +256,28 @@ export class VideoManagerService {
         status: 'Registered',
         processingStatus: 'VideoProcessed',
       },
-      select: { id: true, creatorId: true, status: true },
+      select: {
+        id: true,
+        creatorId: true,
+        title: true,
+        thumbnailId: true,
+        Thumbnails: { select: { imageFileId: true, url: true } },
+        VideoPreviewThumbnail: { select: { url: true } },
+        visibility: true,
+        status: true,
+        createdAt: true
+      },
     });
 
     this.eventEmitter.emit('video_status_changed', {
       userId: video.creatorId,
       videoId: video.id,
       status: video.status,
+    });
+    this.syncVideo({
+      ...video,
+      thumbnailUrl: video?.Thumbnails?.find(x => x.imageFileId === video.thumbnailId)?.url,
+      previewThumbnailUrl: video?.VideoPreviewThumbnail?.url,
     });
   }
 
@@ -254,5 +294,19 @@ export class VideoManagerService {
     });
 
     return video;
+  }
+
+  private syncVideo(video: {
+    id: string
+    creatorId: string
+    title: string
+    thumbnailUrl?: string
+    previewThumbnailUrl?: string
+    visibility: VideoVisibility
+    status: VideoStatus
+    createdAt: Date
+  }) {
+    const event = new UpsertVideoEvent(video);
+    this.libraryClient.emit('upsert_video', event)
   }
 }
