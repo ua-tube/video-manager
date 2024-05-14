@@ -8,7 +8,7 @@ datasource db {
 }
 
 model Creator {
-  id           String  @id
+  id           String  @id @db.Uuid
   displayName  String  @map("display_name")
   nickname     String
   thumbnailUrl String? @map("thumbnail_url")
@@ -19,7 +19,7 @@ model Creator {
 
 model Video {
   id          String          @id @default(uuid()) @db.Uuid
-  creatorId   String          @map("creator_id")
+  creatorId   String          @map("creator_id") @db.Uuid
   Creator     Creator         @relation(fields: [creatorId], references: [id], onDelete: Cascade)
   title       String          @db.VarChar(256)
   description String?

@@ -5,20 +5,14 @@ import {
   Logger,
   NotFoundException, OnApplicationBootstrap,
 } from '@nestjs/common';
-import { CreateVideoDto } from './dto';
+import { CreateVideoDto, PaginationDto, SortDto, UpdateVideoDto } from './dto';
 import { PrismaService } from '../prisma';
 import { JwtService } from '@nestjs/jwt';
-import {
-  AddPreview,
-  AddProcessedVideo,
-  AddThumbnails,
-  SetStatus,
-} from './types';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { COMMUNITY_SVC, LIBRARY_SVC } from '../common/constants';
 import { ClientRMQ } from '@nestjs/microservices';
 import { CreateForumEvent, UpsertVideoEvent } from '../common/events';
-import { VideoStatus, VideoVisibility } from '@prisma/client';
+import { OnEvent } from '@nestjs/event-emitter';
+import { SyncVideoPayload } from './types';
 
 @Injectable()
 export class VideoManagerService implements OnApplicationBootstrap {
@@ -27,12 +21,12 @@ export class VideoManagerService implements OnApplicationBootstrap {
   constructor(
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
-    private readonly eventEmitter: EventEmitter2,
     @Inject(LIBRARY_SVC)
     private readonly libraryClient: ClientRMQ,
     @Inject(COMMUNITY_SVC)
-    private readonly communityClient: ClientRMQ
-  ) {}
+    private readonly communityClient: ClientRMQ,
+  ) {
+  }
 
   onApplicationBootstrap(): void {
     this.libraryClient
@@ -72,35 +66,10 @@ export class VideoManagerService implements OnApplicationBootstrap {
 
   async getVideoById(id: string) {
     const video = await this.prisma.video.findUnique({
-      where: { id },
+      where: { id, status: { not: 'Unregistered' } },
       include: {
-        Metrics: {
-          select: {
-            viewsCount: true,
-            commentsCount: true,
-            likesCount: true,
-            dislikesCount: true,
-          },
-        },
-        Creator: {
-          select: {
-            displayName: true,
-            nickname: true,
-            thumbnailUrl: true,
-          },
-        },
-        ProcessedVideos: {
-          select: {
-            label: true,
-            url: true,
-          },
-        },
-        Thumbnails: {
-          select: {
-            url: true,
-          },
-          take: 1,
-        },
+        ProcessedVideos: true,
+        Thumbnails: true,
       },
     });
 
@@ -108,56 +77,23 @@ export class VideoManagerService implements OnApplicationBootstrap {
       throw new NotFoundException(`Video ${id} not found`);
     }
 
-    return {
-      ...video,
-      Metrics: video?.Metrics
-        ? {
-            viewsCount: `${video.Metrics.viewsCount}`,
-            commentsCount: `${video.Metrics.commentsCount}`,
-            likesCount: `${video.Metrics.likesCount}`,
-            dislikesCount: `${video.Metrics.dislikesCount}`,
-          }
-        : undefined,
-    };
+    return video;
   }
 
-  async getVideos() {
-    const videos = await this.prisma.video.findMany({
-      where: { isPublished: true, visibility: 'Public' },
-      include: {
-        Metrics: {
-          select: {
-            viewsCount: true,
-          },
+  async getVideos(creatorId: string, pagination: PaginationDto, sort: SortDto) {
+    return this.prisma.$transaction([
+      this.prisma.video.findMany({
+        where: { creatorId, status: { not: 'Unregistered' } },
+        include: {
+          ProcessedVideos: true,
+          Thumbnails: true,
         },
-        Creator: {
-          select: {
-            displayName: true,
-            nickname: true,
-            thumbnailUrl: true,
-          },
-        },
-        Thumbnails: {
-          select: {
-            url: true,
-          },
-          take: 1,
-        },
-        VideoPreviewThumbnail: {
-          select: {
-            url: true,
-          },
-        },
-      },
-    });
-
-    videos.forEach((v) => {
-      v.Metrics = v?.Metrics
-        ? ({ viewsCount: `${v.Metrics.viewsCount}` } as any)
-        : undefined;
-    });
-
-    return videos;
+        take: pagination.perPage,
+        skip: (pagination.page - 1) * pagination.perPage,
+        orderBy: { [sort.sortBy]: sort.sortOrder },
+      }),
+      this.prisma.video.count({ where: { creatorId, status: { not: 'Unregistered' } } }),
+    ]);
   }
 
   async getVideoUploadToken(creatorId: string, videoId: string) {
@@ -186,127 +122,68 @@ export class VideoManagerService implements OnApplicationBootstrap {
     return { token: videoUploadToken };
   }
 
-  async addProcessedVideo(payload: AddProcessedVideo) {
-    const video = await this.prisma.processedVideo.create({
-      data: payload,
-      select: {
-        Video: {
-          select: {
-            id: true,
-            creatorId: true,
-          },
-        },
-        label: true,
-      },
-    });
-
-    this.eventEmitter.emit('video_step_processed', {
-      userId: video.Video.creatorId,
-      videoId: video.Video.id,
-      label: video.label,
-    });
-  }
-
-  async addPreview(payload: AddPreview) {
-    await this.prisma.videoPreviewThumbnail.create({
-      data: payload,
-    });
-  }
-
-  async addThumbnails(payload: AddThumbnails) {
-    if (payload.thumbnails.length < 3) throw new BadRequestException();
-
-    await this.prisma.$transaction(async (tx) => {
-      await Promise.allSettled([
-        tx.videoThumbnail.createMany({
-          data: payload.thumbnails.map((t) => ({
-            videoId: payload.videoId,
-            url: t.url,
-            imageFileId: t.imageFileId,
-          })),
-        }),
-        tx.video.update({
-          where: { id: payload.videoId },
-          data: { thumbnailStatus: 'Processed' },
-        }),
-      ]);
-    });
-
+  async updateVideo(videoId: string, creatorId: string, dto: UpdateVideoDto) {
     const video = await this.prisma.video.findUnique({
-      where: { id: payload.videoId },
-      select: {
-        id: true,
-        creatorId: true,
-        Thumbnails: true,
-      },
-    });
-
-    this.eventEmitter.emit('thumbnail_processed', {
-      userId: video.creatorId,
-      videoId: video.id,
-      thumbnails: video.Thumbnails,
-    });
-  }
-
-  async publishVideo(videoId: string) {
-    const video = await this.prisma.video.update({
       where: { id: videoId },
-      data: {
-        isPublished: true,
-        status: 'Registered',
-        processingStatus: 'VideoProcessed',
-      },
-      select: {
-        id: true,
-        creatorId: true,
-        title: true,
-        thumbnailId: true,
-        Thumbnails: { select: { imageFileId: true, url: true } },
-        VideoPreviewThumbnail: { select: { url: true } },
-        visibility: true,
-        status: true,
-        createdAt: true
-      },
+      select: { creatorId: true },
     });
 
-    this.eventEmitter.emit('video_status_changed', {
-      userId: video.creatorId,
-      videoId: video.id,
-      status: video.status,
-    });
-    this.syncVideo({
-      ...video,
-      thumbnailUrl: video?.Thumbnails?.find(x => x.imageFileId === video.thumbnailId)?.url,
-      previewThumbnailUrl: video?.VideoPreviewThumbnail?.url,
-    });
+    if (!video) throw new BadRequestException('Video not found');
+
+    if (video.creatorId !== creatorId) throw new ForbiddenException('Is not your video');
+
+    try {
+      await this.prisma.video.update({
+        where: { id: videoId },
+        data: dto,
+      });
+      this.logger.log(`Video ${videoId} info updated`);
+      return { status: true };
+    } catch (e) {
+      this.logger.error(e);
+      return { status: false };
+    }
   }
 
-  async setProcessingStatus(payload: SetStatus) {
-    const video = await this.prisma.video.update({
-      where: { id: payload.videoId },
-      data: { processingStatus: payload.status },
+  async unregisterVideo(videoId: string, creatorId: string) {
+    const video = await this.prisma.video.findUnique({
+      where: { id: videoId },
+      select: { status: true, creatorId: true, processingStatus: true },
     });
 
-    this.eventEmitter.emit('video_status_changed', {
-      userId: video.creatorId,
-      videoId: video.id,
-      status: video.processingStatus,
-    });
+    if (!video) throw new BadRequestException('Video not found');
 
-    return video;
+    if (video.creatorId !== creatorId)
+      throw new ForbiddenException('Is not your video');
+
+    if (video.status === 'Unregistered') return { status: false };
+
+    if (video.status !== 'RegistrationFailed' &&
+      video.processingStatus !== 'WaitingForUserUpload' &&
+      video.processingStatus !== 'VideoProcessed') {
+      throw new BadRequestException();
+    }
+
+    try {
+      await this.prisma.video.update({
+        where: { id: videoId },
+        data: { status: 'Unregistered' },
+      });
+      this.logger.log(`Video ${videoId} is unregistered`);
+      return { status: true };
+    } catch (e) {
+      this.logger.error(e);
+      return { status: false };
+    }
   }
 
-  private syncVideo(video: {
-    id: string
-    creatorId: string
-    title: string
-    thumbnailUrl?: string
-    previewThumbnailUrl?: string
-    visibility: VideoVisibility
-    status: VideoStatus
-    createdAt: Date
-  }) {
+  private syncVideo(video: SyncVideoPayload) {
     const event = new UpsertVideoEvent(video);
-    this.libraryClient.emit('upsert_video', event)
+    this.libraryClient.emit('upsert_video', event);
+  }
+
+  @OnEvent('sync_video')
+  private async handleSyncVideo(data: SyncVideoPayload) {
+    this.syncVideo(data);
   }
 }

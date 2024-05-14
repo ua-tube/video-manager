@@ -4,8 +4,7 @@ import { PrismaModule } from '../prisma';
 import { JwtModule } from '@nestjs/jwt';
 import { VideoManagerGateway } from './video-manager.gateway';
 import { ConfigService } from '@nestjs/config';
-import { RmqController, VideoManagerController } from './controllers';
-import { EventEmitterModule } from '@nestjs/event-emitter';
+import { VideoManagerController } from './video-manager.controller';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { COMMUNITY_SVC, LIBRARY_SVC } from '../common/constants';
 
@@ -29,7 +28,6 @@ import { COMMUNITY_SVC, LIBRARY_SVC } from '../common/constants';
         },
       }),
     }),
-    EventEmitterModule.forRoot(),
     PrismaModule,
     ClientsModule.registerAsync([
       {
@@ -64,7 +62,7 @@ import { COMMUNITY_SVC, LIBRARY_SVC } from '../common/constants';
       }
     ])
   ],
-  controllers: [VideoManagerController, RmqController],
+  controllers: [VideoManagerController],
   providers: [VideoManagerService, VideoManagerGateway],
 })
 export class VideoManagerModule {}

@@ -1,39 +1,34 @@
 import { Controller } from '@nestjs/common';
+import { VideoProcessorService } from './video-processor.service';
 import { EventPattern, MessagePattern, Payload } from '@nestjs/microservices';
-import {
-  AddPreview,
-  AddProcessedVideo,
-  AddThumbnails,
-  SetStatus,
-} from '../types';
-import { VideoManagerService } from '../video-manager.service';
+import { AddPreview, AddProcessedVideo, AddThumbnails, SetStatus } from './types';
 
 @Controller()
-export class RmqController {
-  constructor(private readonly videoManagerService: VideoManagerService) {}
+export class VideoProcessorController {
+  constructor(private readonly videoProcessorService: VideoProcessorService) {}
 
   @MessagePattern('set_processing_status')
   async handleSetStatus(@Payload() payload: SetStatus) {
-    return this.videoManagerService.setProcessingStatus(payload);
+    return this.videoProcessorService.setProcessingStatus(payload);
   }
 
   @EventPattern('add_processed_video')
   async handleAddProcessedVideo(@Payload() payload: AddProcessedVideo) {
-    await this.videoManagerService.addProcessedVideo(payload);
+    await this.videoProcessorService.addProcessedVideo(payload);
   }
 
   @EventPattern('add_preview')
   async handleAddPreview(@Payload() payload: AddPreview) {
-    await this.videoManagerService.addPreview(payload);
+    await this.videoProcessorService.addPreview(payload);
   }
 
   @EventPattern('add_thumbnails')
   async handleAddThumbnails(@Payload() payload: AddThumbnails) {
-    await this.videoManagerService.addThumbnails(payload);
+    await this.videoProcessorService.addThumbnails(payload);
   }
 
   @EventPattern('publish_video')
   async handlePublishVideo(@Payload() payload: { videoId: string }) {
-    await this.videoManagerService.publishVideo(payload.videoId);
+    await this.videoProcessorService.publishVideo(payload.videoId);
   }
 }

@@ -1,4 +1,12 @@
-export * from './add-preview.type';
-export * from './add-thumbnail.type';
-export * from './add-processed-video.type';
-export * from './set-status.type';
+import { VideoStatus, VideoVisibility } from '@prisma/client';
+
+export type SyncVideoPayload = {
+  id: string
+  creatorId: string
+  title: string
+  thumbnailUrl?: string
+  previewThumbnailUrl?: string
+  visibility: VideoVisibility
+  status: VideoStatus
+  createdAt: Date
+}

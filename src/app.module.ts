@@ -6,6 +6,7 @@ import Joi from 'joi';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { LoggingInterceptor } from './common/interceptors';
 import { HealthModule } from './health/health.module';
+import { VideoProcessorModule } from './video-processor/video-processor.module';
 
 @Module({
   imports: [
@@ -29,7 +30,8 @@ import { HealthModule } from './health/health.module';
     }),
     VideoManagerModule,
     CreatorsModule,
-    HealthModule
+    HealthModule,
+    VideoProcessorModule
   ],
   providers: [
     {
