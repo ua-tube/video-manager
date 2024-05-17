@@ -5,7 +5,7 @@ import {
   OnApplicationBootstrap,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma';
-import { UpsertCreator } from './types';
+import { UpsertCreatorDto } from './dto';
 import { ClientRMQ } from '@nestjs/microservices';
 import { USERS_SVC } from '../common/constants';
 
@@ -26,7 +26,7 @@ export class CreatorsService implements OnApplicationBootstrap {
       .catch(() => this.logger.error(`${USERS_SVC} connection failed`));
   }
 
-  async upsertCreator(payload: UpsertCreator) {
+  async upsertCreator(payload: UpsertCreatorDto) {
     const creator = await this.prisma.creator.findUnique({
       where: { id: payload.id },
       select: { id: true },
@@ -39,7 +39,7 @@ export class CreatorsService implements OnApplicationBootstrap {
           data: {
             displayName: payload.displayName,
             nickname: payload.nickname,
-            thumbnailUrl: payload.thumbnailUrl
+            thumbnailUrl: payload.thumbnailUrl,
           },
         });
         this.logger.log(`Creator (${payload.id}) is updated`);

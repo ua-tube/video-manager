@@ -49,7 +49,7 @@ model Video {
 
 model VideoMetrics {
   videoId       String @id @default(uuid()) @map("video_id") @db.Uuid
-  Video         Video  @relation(fields: [videoId], references: [id])
+  Video         Video  @relation(fields: [videoId], references: [id], onDelete: Cascade)
   viewsCount    BigInt @default(0) @map("views_count")
   commentsCount BigInt @default(0) @map("comments_count")
   likesCount    BigInt @default(0) @map("likes_count")
@@ -59,12 +59,16 @@ model VideoMetrics {
 }
 
 model ProcessedVideo {
-  id          String @id @default(uuid()) @db.Uuid
-  videoFileId String @map("video_file_id") @db.Uuid
-  label       String
-  url         String
-  videoId     String @map("video_id") @db.Uuid
-  Video       Video  @relation(fields: [videoId], references: [id])
+  id            String @id @default(uuid()) @db.Uuid
+  videoFileId   String @map("video_file_id") @db.Uuid
+  videoId       String @map("video_id") @db.Uuid
+  Video         Video  @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  label         String
+  width         Int
+  height        Int
+  size          BigInt
+  lengthSeconds Int    @map("length_seconds")
+  url           String
 
   @@map("processed_videos")
 }
@@ -73,7 +77,7 @@ model VideoThumbnail {
   imageFileId String @id @map("image_file_id") @db.Uuid
   url         String
   videoId     String @map("video_id") @db.Uuid
-  Video       Video  @relation(fields: [videoId], references: [id])
+  Video       Video  @relation(fields: [videoId], references: [id], onDelete: Cascade)
 
   @@map("video_thumbnails")
 }
@@ -82,7 +86,7 @@ model VideoPreviewThumbnail {
   imageFileId String @id @map("image_file_id") @db.Uuid
   url         String
   videoId     String @unique @default(uuid()) @map("video_id") @db.Uuid
-  Video       Video  @relation(fields: [videoId], references: [id])
+  Video       Video  @relation(fields: [videoId], references: [id], onDelete: Cascade)
 
   @@map("video_preview_thumbnails")
 }

@@ -1,18 +1,27 @@
 import {
   BadRequestException,
-  ForbiddenException, Inject,
+  ForbiddenException,
+  Inject,
   Injectable,
   Logger,
-  NotFoundException, OnApplicationBootstrap,
+  NotFoundException,
+  OnApplicationBootstrap,
 } from '@nestjs/common';
-import { CreateVideoDto, PaginationDto, SortDto, UpdateVideoDto } from './dto';
+import {
+  CreateVideoDto,
+  PaginationDto,
+  SortDto,
+  SyncVideoDto,
+  UpdateVideoDto,
+} from './dto';
 import { PrismaService } from '../prisma';
 import { JwtService } from '@nestjs/jwt';
 import { COMMUNITY_SVC, LIBRARY_SVC } from '../common/constants';
 import { ClientRMQ } from '@nestjs/microservices';
 import { CreateForumEvent, UpsertVideoEvent } from '../common/events';
 import { OnEvent } from '@nestjs/event-emitter';
-import { SyncVideoPayload } from './types';
+import axios from 'axios';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class VideoManagerService implements OnApplicationBootstrap {
@@ -25,21 +34,17 @@ export class VideoManagerService implements OnApplicationBootstrap {
     private readonly libraryClient: ClientRMQ,
     @Inject(COMMUNITY_SVC)
     private readonly communityClient: ClientRMQ,
-  ) {
-  }
+    private readonly configService: ConfigService,
+  ) {}
 
   onApplicationBootstrap(): void {
     this.libraryClient
       .connect()
-      .then(() =>
-        this.logger.log(`${LIBRARY_SVC} connection established`),
-      )
+      .then(() => this.logger.log(`${LIBRARY_SVC} connection established`))
       .catch(() => this.logger.error(`${LIBRARY_SVC} connection failed`));
     this.communityClient
       .connect()
-      .then(() =>
-        this.logger.log(`${COMMUNITY_SVC} connection established`),
-      )
+      .then(() => this.logger.log(`${COMMUNITY_SVC} connection established`))
       .catch(() => this.logger.error(`${COMMUNITY_SVC} connection failed`));
   }
 
@@ -59,7 +64,10 @@ export class VideoManagerService implements OnApplicationBootstrap {
 
     this.logger.log(`Video (${video.id}) is created`);
     this.syncVideo(video);
-    this.communityClient.emit('create_forum', new CreateForumEvent(video.id, creatorId));
+    this.communityClient.emit(
+      'create_forum',
+      new CreateForumEvent(video.id, creatorId),
+    );
 
     return video;
   }
@@ -92,7 +100,9 @@ export class VideoManagerService implements OnApplicationBootstrap {
         skip: (pagination.page - 1) * pagination.perPage,
         orderBy: { [sort.sortBy]: sort.sortOrder },
       }),
-      this.prisma.video.count({ where: { creatorId, status: { not: 'Unregistered' } } }),
+      this.prisma.video.count({
+        where: { creatorId, status: { not: 'Unregistered' } },
+      }),
     ]);
   }
 
@@ -130,7 +140,8 @@ export class VideoManagerService implements OnApplicationBootstrap {
 
     if (!video) throw new BadRequestException('Video not found');
 
-    if (video.creatorId !== creatorId) throw new ForbiddenException('Is not your video');
+    if (video.creatorId !== creatorId)
+      throw new ForbiddenException('Is not your video');
 
     try {
       await this.prisma.video.update({
@@ -158,10 +169,16 @@ export class VideoManagerService implements OnApplicationBootstrap {
 
     if (video.status === 'Unregistered') return { status: false };
 
-    if (video.status !== 'RegistrationFailed' &&
-      video.processingStatus !== 'WaitingForUserUpload' &&
-      video.processingStatus !== 'VideoProcessed') {
-      throw new BadRequestException();
+    if (video.processingStatus === 'VideoBeingProcessed') {
+      await axios.post(
+        this.configService.get<string>('VIDEO_PROCESSOR_SVC_URL') + '/cancel',
+        { videoId },
+        {
+          headers: {
+            token: this.configService.get('VIDEO_PROCESSOR_SERVICE_TOKEN'),
+          },
+        },
+      );
     }
 
     try {
@@ -177,13 +194,13 @@ export class VideoManagerService implements OnApplicationBootstrap {
     }
   }
 
-  private syncVideo(video: SyncVideoPayload) {
+  private syncVideo(video: SyncVideoDto) {
     const event = new UpsertVideoEvent(video);
     this.libraryClient.emit('upsert_video', event);
   }
 
   @OnEvent('sync_video')
-  private async handleSyncVideo(data: SyncVideoPayload) {
+  private async handleSyncVideo(data: SyncVideoDto) {
     this.syncVideo(data);
   }
 }

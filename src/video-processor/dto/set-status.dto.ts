@@ -1,6 +1,6 @@
 import { VideoProcessingStatus } from '@prisma/client';
 
-export type SetStatus = {
+export class SetStatusDto {
   videoId: string;
   status: VideoProcessingStatus;
-};
+}

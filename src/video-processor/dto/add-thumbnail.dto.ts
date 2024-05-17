@@ -1,7 +1,7 @@
-export type AddThumbnails = {
+export class AddThumbnailsDto {
   videoId: string;
   thumbnails: {
     imageFileId: string;
     url: string;
   }[];
-};
+}

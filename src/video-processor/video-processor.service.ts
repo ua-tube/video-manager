@@ -1,17 +1,27 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma';
-import { AddPreview, AddProcessedVideo, AddThumbnails, SetStatus } from './types';
+import {
+  AddPreviewDto,
+  AddProcessedVideoDto,
+  AddThumbnailsDto,
+  SetStatusDto,
+} from './dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class VideoProcessorService {
-  constructor(private readonly prisma: PrismaService,
-              private readonly eventEmitter: EventEmitter2) {
-  }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
-  async addProcessedVideo(payload: AddProcessedVideo) {
+  async addProcessedVideo(payload: AddProcessedVideoDto) {
     const video = await this.prisma.processedVideo.create({
-      data: payload,
+      //data: payload,
+      data: {
+        ...payload,
+        size: BigInt(payload.size),
+      },
       select: {
         Video: {
           select: {
@@ -30,13 +40,13 @@ export class VideoProcessorService {
     });
   }
 
-  async addPreview(payload: AddPreview) {
+  async addPreview(payload: AddPreviewDto) {
     await this.prisma.videoPreviewThumbnail.create({
       data: payload,
     });
   }
 
-  async addThumbnails(payload: AddThumbnails) {
+  async addThumbnails(payload: AddThumbnailsDto) {
     if (payload.thumbnails.length < 3) throw new BadRequestException();
 
     await this.prisma.$transaction(async (tx) => {
@@ -88,7 +98,7 @@ export class VideoProcessorService {
         VideoPreviewThumbnail: { select: { url: true } },
         visibility: true,
         status: true,
-        createdAt: true
+        createdAt: true,
       },
     });
 
@@ -100,12 +110,14 @@ export class VideoProcessorService {
 
     this.eventEmitter.emit('sync_video', {
       ...video,
-      thumbnailUrl: video?.Thumbnails?.find(x => x.imageFileId === video.thumbnailId)?.url,
+      thumbnailUrl: video?.Thumbnails?.find(
+        (x) => x.imageFileId === video.thumbnailId,
+      )?.url,
       previewThumbnailUrl: video?.VideoPreviewThumbnail?.url,
     });
   }
 
-  async setProcessingStatus(payload: SetStatus) {
+  async setProcessingStatus(payload: SetStatusDto) {
     const video = await this.prisma.video.update({
       where: { id: payload.videoId },
       data: { processingStatus: payload.status },

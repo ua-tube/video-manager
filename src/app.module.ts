@@ -19,6 +19,8 @@ import { VideoProcessorModule } from './video-processor/video-processor.module';
         HTTP_HOST: Joi.string().required(),
         HTTP_PORT: Joi.number().required(),
         AUTH_SVC_URL: Joi.string().required(),
+        VIDEO_PROCESSOR_SVC_URL: Joi.string().required(),
+        VIDEO_PROCESSOR_SERVICE_TOKEN: Joi.string().required(),
         REDIS_URL: Joi.string().required(),
         RABBITMQ_URL: Joi.string().required(),
         RABBITMQ_QUEUE: Joi.string().required(),
