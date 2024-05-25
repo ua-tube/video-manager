@@ -6,7 +6,7 @@ import { VideoManagerGateway } from './video-manager.gateway';
 import { ConfigService } from '@nestjs/config';
 import { VideoManagerController } from './video-manager.controller';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import { COMMUNITY_SVC, LIBRARY_SVC } from '../common/constants';
+import { videoManagerMicroserviceClients } from '../common/constants';
 
 @Module({
   imports: [
@@ -29,38 +29,23 @@ import { COMMUNITY_SVC, LIBRARY_SVC } from '../common/constants';
       }),
     }),
     PrismaModule,
-    ClientsModule.registerAsync([
-      {
-        name: LIBRARY_SVC,
+    ClientsModule.registerAsync(
+      videoManagerMicroserviceClients.map((item) => ({
+        name: item[0],
         inject: [ConfigService],
         useFactory: (configService: ConfigService) => ({
           transport: Transport.RMQ,
           options: {
             urls: [configService.get<string>('RABBITMQ_URL')],
-            queue: configService.get<string>('RABBITMQ_LIBRARY_QUEUE'),
+            queue: configService.get<string>(`RABBITMQ_${item[1]}_QUEUE`),
             persistent: true,
             queueOptions: {
               durable: false,
             },
           },
-        })
-      },
-      {
-        name: COMMUNITY_SVC,
-        inject: [ConfigService],
-        useFactory: (configService: ConfigService) => ({
-          transport: Transport.RMQ,
-          options: {
-            urls: [configService.get<string>('RABBITMQ_URL')],
-            queue: configService.get<string>('RABBITMQ_COMMUNITY_QUEUE'),
-            persistent: true,
-            queueOptions: {
-              durable: false,
-            },
-          },
-        })
-      }
-    ])
+        }),
+      })),
+    ),
   ],
   controllers: [VideoManagerController],
   providers: [VideoManagerService, VideoManagerGateway],

@@ -23,7 +23,7 @@ export class VideoProcessorService {
         size: BigInt(payload.size),
       },
       select: {
-        Video: {
+        video: {
           select: {
             id: true,
             creatorId: true,
@@ -34,8 +34,8 @@ export class VideoProcessorService {
     });
 
     this.eventEmitter.emit('video_step_processed', {
-      userId: video.Video.creatorId,
-      videoId: video.Video.id,
+      userId: video.video.creatorId,
+      videoId: video.video.id,
       label: video.label,
     });
   }
@@ -70,14 +70,14 @@ export class VideoProcessorService {
       select: {
         id: true,
         creatorId: true,
-        Thumbnails: true,
+        thumbnails: true,
       },
     });
 
     this.eventEmitter.emit('thumbnail_processed', {
       userId: video.creatorId,
       videoId: video.id,
-      thumbnails: video.Thumbnails,
+      thumbnails: video.thumbnails,
     });
   }
 
@@ -89,16 +89,9 @@ export class VideoProcessorService {
         status: 'Registered',
         processingStatus: 'VideoProcessed',
       },
-      select: {
-        id: true,
-        creatorId: true,
-        title: true,
-        thumbnailId: true,
-        Thumbnails: { select: { imageFileId: true, url: true } },
-        VideoPreviewThumbnail: { select: { url: true } },
-        visibility: true,
-        status: true,
-        createdAt: true,
+      include: {
+        thumbnails: { select: { imageFileId: true, url: true } },
+        videoPreviewThumbnail: { select: { url: true } },
       },
     });
 
@@ -110,10 +103,10 @@ export class VideoProcessorService {
 
     this.eventEmitter.emit('sync_video', {
       ...video,
-      thumbnailUrl: video?.Thumbnails?.find(
+      thumbnailUrl: video?.thumbnails?.find(
         (x) => x.imageFileId === video.thumbnailId,
       )?.url,
-      previewThumbnailUrl: video?.VideoPreviewThumbnail?.url,
+      previewThumbnailUrl: video?.videoPreviewThumbnail?.url,
     });
   }
 

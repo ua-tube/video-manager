@@ -4,8 +4,11 @@ export class SyncVideoDto {
   id: string;
   creatorId: string;
   title: string;
-  thumbnailUrl?: string;
+  description: string;
+  tags: string;
+  thumbnailUrl: string;
   previewThumbnailUrl?: string;
+  lengthSeconds: number;
   visibility: VideoVisibility;
   status: VideoStatus;
   createdAt: Date;

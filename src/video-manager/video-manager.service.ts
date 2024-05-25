@@ -16,36 +16,63 @@ import {
 } from './dto';
 import { PrismaService } from '../prisma';
 import { JwtService } from '@nestjs/jwt';
-import { COMMUNITY_SVC, LIBRARY_SVC } from '../common/constants';
+import {
+  COMMUNITY_SVC,
+  HISTORY_SVC,
+  LIBRARY_SVC,
+  SEARCH_SVC,
+  VIDEO_STORE_SVC,
+} from '../common/constants';
 import { ClientRMQ } from '@nestjs/microservices';
-import { CreateForumEvent, UpsertVideoEvent } from '../common/events';
+import {
+  CreateForumEvent,
+  HistoryCreateVideoEvent,
+  HistoryUpdateVideoEvent,
+  LibraryCreateVideoEvent,
+  LibraryUpdateVideoEvent,
+  SearchCreateVideoEvent,
+  VideoStoreCreateVideoEvent,
+  VideoStoreUpdateVideoEvent,
+} from '../common/events';
 import { OnEvent } from '@nestjs/event-emitter';
 import axios from 'axios';
 import { ConfigService } from '@nestjs/config';
+import { Video } from '@prisma/client';
 
 @Injectable()
 export class VideoManagerService implements OnApplicationBootstrap {
   private readonly logger = new Logger(VideoManagerService.name);
+  private readonly clients: { name: string; client: ClientRMQ }[] = [
+    { name: VIDEO_STORE_SVC, client: this.videoStoreClient },
+    { name: COMMUNITY_SVC, client: this.communityClient },
+    { name: LIBRARY_SVC, client: this.libraryClient },
+    { name: HISTORY_SVC, client: this.historyClient },
+    { name: SEARCH_SVC, client: this.searchClient },
+  ];
 
   constructor(
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
     @Inject(LIBRARY_SVC)
     private readonly libraryClient: ClientRMQ,
     @Inject(COMMUNITY_SVC)
     private readonly communityClient: ClientRMQ,
-    private readonly configService: ConfigService,
+    @Inject(VIDEO_STORE_SVC)
+    private readonly videoStoreClient: ClientRMQ,
+    @Inject(HISTORY_SVC)
+    private readonly historyClient: ClientRMQ,
+    @Inject(SEARCH_SVC)
+    private readonly searchClient: ClientRMQ,
   ) {}
 
   onApplicationBootstrap(): void {
-    this.libraryClient
-      .connect()
-      .then(() => this.logger.log(`${LIBRARY_SVC} connection established`))
-      .catch(() => this.logger.error(`${LIBRARY_SVC} connection failed`));
-    this.communityClient
-      .connect()
-      .then(() => this.logger.log(`${COMMUNITY_SVC} connection established`))
-      .catch(() => this.logger.error(`${COMMUNITY_SVC} connection failed`));
+    this.clients.forEach(({ client, name }) => {
+      client
+        .connect()
+        .then(() => this.logger.log(`${name} connection established`))
+        .catch(() => this.logger.error(`${name} connection failed`));
+    });
   }
 
   async createVideo(creatorId: string, dto: CreateVideoDto) {
@@ -54,20 +81,17 @@ export class VideoManagerService implements OnApplicationBootstrap {
         creatorId,
         ...dto,
         isPublished: false,
+        lengthSeconds: 0,
         processingStatus: 'WaitingForUserUpload',
         visibility: 'Private',
         thumbnailStatus: 'Waiting',
         status: 'Created',
-        Metrics: { create: {} },
+        metrics: { create: {} },
       },
     });
 
     this.logger.log(`Video (${video.id}) is created`);
-    this.syncVideo(video);
-    this.communityClient.emit(
-      'create_forum',
-      new CreateForumEvent(video.id, creatorId),
-    );
+    this.emitCreateVideo(video, creatorId);
 
     return video;
   }
@@ -76,8 +100,8 @@ export class VideoManagerService implements OnApplicationBootstrap {
     const video = await this.prisma.video.findUnique({
       where: { id, status: { not: 'Unregistered' } },
       include: {
-        ProcessedVideos: true,
-        Thumbnails: true,
+        processedVideos: true,
+        thumbnails: true,
       },
     });
 
@@ -93,8 +117,8 @@ export class VideoManagerService implements OnApplicationBootstrap {
       this.prisma.video.findMany({
         where: { creatorId, status: { not: 'Unregistered' } },
         include: {
-          ProcessedVideos: true,
-          Thumbnails: true,
+          processedVideos: true,
+          thumbnails: true,
         },
         take: pagination.perPage,
         skip: (pagination.page - 1) * pagination.perPage,
@@ -194,13 +218,36 @@ export class VideoManagerService implements OnApplicationBootstrap {
     }
   }
 
-  private syncVideo(video: SyncVideoDto) {
-    const event = new UpsertVideoEvent(video);
-    this.libraryClient.emit('upsert_video', event);
+  private emitCreateVideo(video: Video, creatorId: string) {
+    const pattern = 'create_video';
+    this.videoStoreClient.emit(pattern, new VideoStoreCreateVideoEvent(video));
+    this.libraryClient.emit(pattern, new LibraryCreateVideoEvent(video));
+    this.historyClient.emit(pattern, new HistoryCreateVideoEvent(video));
+    this.searchClient.emit(
+      pattern,
+      new SearchCreateVideoEvent({
+        ...video,
+        tags: video?.tags?.split(','),
+      }),
+    );
+    this.communityClient.emit(
+      'create_forum',
+      new CreateForumEvent(video.id, creatorId),
+    );
   }
 
   @OnEvent('sync_video')
   private async handleSyncVideo(data: SyncVideoDto) {
-    this.syncVideo(data);
+    const pattern = 'update_video';
+    this.videoStoreClient.emit(pattern, new VideoStoreUpdateVideoEvent(data));
+    this.libraryClient.emit(pattern, new LibraryUpdateVideoEvent(data));
+    this.historyClient.emit(pattern, new HistoryUpdateVideoEvent(data));
+    this.searchClient.emit(
+      pattern,
+      new SearchCreateVideoEvent({
+        ...data,
+        tags: data?.tags?.split(','),
+      }),
+    );
   }
 }
