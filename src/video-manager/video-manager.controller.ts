@@ -6,7 +6,8 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
-  Put, Query,
+  Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { VideoManagerService } from './video-manager.service';
@@ -17,8 +18,7 @@ import { AuthUserGuard } from '../common/guards';
 @UseGuards(AuthUserGuard)
 @Controller('video-manager')
 export class VideoManagerController {
-  constructor(private readonly videoManagerService: VideoManagerService) {
-  }
+  constructor(private readonly videoManagerService: VideoManagerService) {}
 
   @Post('videos')
   createVideo(@Body() dto: CreateVideoDto, @UserId() userId: string) {
@@ -34,7 +34,8 @@ export class VideoManagerController {
   getVideos(
     @UserId() userId: string,
     @Query() query: PaginationDto,
-    @Query() sort: SortDto) {
+    @Query() sort: SortDto,
+  ) {
     return this.videoManagerService.getVideos(userId, query, sort);
   }
 
@@ -47,15 +48,19 @@ export class VideoManagerController {
   }
 
   @Put('videos/:videoId')
-  updateVideo(@Param('videoId', ParseUUIDPipe) videoId: string,
-              @Body() body: UpdateVideoDto,
-              @UserId() userId: string) {
+  updateVideo(
+    @Param('videoId', ParseUUIDPipe) videoId: string,
+    @Body() body: UpdateVideoDto,
+    @UserId() userId: string,
+  ) {
     return this.videoManagerService.updateVideo(videoId, userId, body);
   }
 
   @Delete('videos/:videoId')
-  unregisterVideo(@Param('videoId', ParseUUIDPipe) videoId: string,
-                  @UserId() userId: string) {
+  unregisterVideo(
+    @Param('videoId', ParseUUIDPipe) videoId: string,
+    @UserId() userId: string,
+  ) {
     return this.videoManagerService.unregisterVideo(videoId, userId);
   }
 }

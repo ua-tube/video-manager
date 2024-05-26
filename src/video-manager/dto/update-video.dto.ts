@@ -4,21 +4,21 @@ import { VideoVisibility } from '@prisma/client';
 export class UpdateVideoDto {
   @IsNotEmpty()
   @IsString()
-  title: string
+  title: string;
 
   @IsNotEmpty()
   @IsString()
-  description: string
+  description: string;
 
   @IsNotEmpty()
   @IsString()
-  tags: string
+  tags: string;
 
   @IsNotEmpty()
   @IsUUID(4)
-  thumbnailId: string
+  thumbnailId: string;
 
   @IsNotEmpty()
   @IsIn(Object.keys(VideoVisibility))
-  visibility: VideoVisibility
+  visibility: VideoVisibility;
 }

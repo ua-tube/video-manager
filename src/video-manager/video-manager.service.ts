@@ -113,7 +113,7 @@ export class VideoManagerService implements OnApplicationBootstrap {
   }
 
   async getVideos(creatorId: string, pagination: PaginationDto, sort: SortDto) {
-    return this.prisma.$transaction([
+    const [videos, count] = await this.prisma.$transaction([
       this.prisma.video.findMany({
         where: { creatorId, status: { not: 'Unregistered' } },
         include: {
@@ -128,6 +128,8 @@ export class VideoManagerService implements OnApplicationBootstrap {
         where: { creatorId, status: { not: 'Unregistered' } },
       }),
     ]);
+
+    return { videos, count };
   }
 
   async getVideoUploadToken(creatorId: string, videoId: string) {

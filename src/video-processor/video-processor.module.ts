@@ -5,10 +5,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { PrismaModule } from '../prisma';
 
 @Module({
-  imports: [
-    EventEmitterModule.forRoot(),
-    PrismaModule
-  ],
+  imports: [EventEmitterModule.forRoot(), PrismaModule],
   controllers: [VideoProcessorController],
   providers: [VideoProcessorService],
 })

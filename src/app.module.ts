@@ -15,9 +15,9 @@ import { VideoProcessorModule } from './video-processor/video-processor.module';
       isGlobal: true,
       validationSchema: Joi.object({
         NODE_ENV: Joi.valid('development', 'production', 'test').required(),
-        CLIENT_URL: Joi.string().required(),
         HTTP_HOST: Joi.string().required(),
         HTTP_PORT: Joi.number().required(),
+        CLIENT_URL: Joi.string().required(),
         AUTH_SVC_URL: Joi.string().required(),
         VIDEO_PROCESSOR_SVC_URL: Joi.string().required(),
         VIDEO_PROCESSOR_SERVICE_TOKEN: Joi.string().required(),
@@ -33,7 +33,7 @@ import { VideoProcessorModule } from './video-processor/video-processor.module';
     VideoManagerModule,
     CreatorsModule,
     HealthModule,
-    VideoProcessorModule
+    VideoProcessorModule,
   ],
   providers: [
     {
