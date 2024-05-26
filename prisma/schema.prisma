@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["omitApi"]
 }
 
 datasource db {
@@ -18,16 +19,18 @@ model Creator {
 }
 
 model Video {
-  id          String          @id @default(uuid()) @db.Uuid
-  creatorId   String          @map("creator_id") @db.Uuid
-  creator     Creator         @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  title       String          @db.VarChar(256)
-  description String?
-  tags        String?
-  thumbnailId String?         @map("thumbnail_id") @db.Uuid
-  status      VideoStatus
-  visibility  VideoVisibility
-  isPublished Boolean         @map("is_published")
+  id            String          @id @default(uuid()) @db.Uuid
+  creatorId     String          @map("creator_id") @db.Uuid
+  creator       Creator         @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  title         String          @db.VarChar(256)
+  description   String          @default("")
+  tags          String          @default("")
+  thumbnailId   String?         @map("thumbnail_id") @db.Uuid
+  status        VideoStatus
+  visibility    VideoVisibility
+  isPublished   Boolean         @map("is_published")
+  publishedAt   DateTime?       @map("published_at") @db.Timestamptz(6)
+  unpublishedAt DateTime?       @map("unpublished_at") @db.Timestamptz(6)
 
   lengthSeconds         Int                   @map("length_seconds")
   processingStatus      VideoProcessingStatus @map("processing_status")
@@ -49,26 +52,30 @@ model Video {
 }
 
 model VideoMetrics {
-  videoId       String @id @default(uuid()) @map("video_id") @db.Uuid
-  video         Video  @relation(fields: [videoId], references: [id], onDelete: Cascade)
-  viewsCount    BigInt @default(0) @map("views_count")
-  commentsCount BigInt @default(0) @map("comments_count")
-  likesCount    BigInt @default(0) @map("likes_count")
-  dislikesCount BigInt @default(0) @map("dislikes_count")
+  videoId                String    @id @default(uuid()) @map("video_id") @db.Uuid
+  video                  Video     @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  viewsCount             BigInt    @default(0) @map("views_count")
+  commentsCount          BigInt    @default(0) @map("comments_count")
+  likesCount             BigInt    @default(0) @map("likes_count")
+  dislikesCount          BigInt    @default(0) @map("dislikes_count")
+  viewsCountUpdatedAt    DateTime? @map("views_count_updated_at") @db.Timestamptz(6)
+  commentsCountUpdatedAt DateTime? @map("comments_count_updated_at") @db.Timestamptz(6)
+  votesCountUpdatedAt    DateTime? @map("votes_count_updated_at") @db.Timestamptz(6)
 
   @@map("video_metrics")
 }
 
 model ProcessedVideo {
-  id          String @id @default(uuid()) @db.Uuid
-  videoFileId String @map("video_file_id") @db.Uuid
-  videoId     String @map("video_id") @db.Uuid
-  video       Video  @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  id          String   @id @default(uuid()) @db.Uuid
+  videoFileId String   @map("video_file_id") @db.Uuid
+  videoId     String   @map("video_id") @db.Uuid
+  video       Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
   label       String
   width       Int
   height      Int
   size        BigInt
   url         String
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@map("processed_videos")
 }

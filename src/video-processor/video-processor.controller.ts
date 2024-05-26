@@ -57,12 +57,12 @@ export class VideoProcessorController {
     ackMessage(context);
   }
 
-  @EventPattern('publish_video')
-  async handlePublishVideo(
+  @EventPattern('video_process_finished')
+  async handleVideoProcessFinished(
     @Payload() payload: { videoId: string },
     @Ctx() context: RmqContext,
   ) {
-    await this.videoProcessorService.publishVideo(payload.videoId);
+    await this.videoProcessorService.videoProcessFinished(payload.videoId);
     ackMessage(context);
   }
 }

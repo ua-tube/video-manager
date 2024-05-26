@@ -7,6 +7,13 @@ import {
   SetStatusDto,
 } from './dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import {
+  SyncVideoEvent,
+  ThumbnailProcessedEvent,
+  UpdateVideoResourcesEvent,
+  VideoStatusChangedEvent,
+  VideoStepProcessedEvent,
+} from '../common/events';
 
 @Injectable()
 export class VideoProcessorService {
@@ -16,11 +23,22 @@ export class VideoProcessorService {
   ) {}
 
   async addProcessedVideo(payload: AddProcessedVideoDto) {
+    if (payload?.lengthSeconds) {
+      await this.prisma.video.update({
+        where: { id: payload.videoId },
+        data: { lengthSeconds: payload.lengthSeconds },
+      });
+    }
+
     const video = await this.prisma.processedVideo.create({
-      //data: payload,
       data: {
-        ...payload,
-        size: BigInt(payload.size),
+        videoId: payload.videoId,
+        videoFileId: payload.videoFileId,
+        label: payload.label,
+        url: payload.url,
+        width: payload?.width || 0,
+        height: payload?.height || 0,
+        size: BigInt(payload?.size || 0),
       },
       select: {
         video: {
@@ -33,11 +51,14 @@ export class VideoProcessorService {
       },
     });
 
-    this.eventEmitter.emit('video_step_processed', {
-      userId: video.video.creatorId,
-      videoId: video.video.id,
-      label: video.label,
-    });
+    this.eventEmitter.emit(
+      'video_step_processed',
+      new VideoStepProcessedEvent(
+        video.video.creatorId,
+        video.video.id,
+        video.label,
+      ),
+    );
   }
 
   async addPreview(payload: AddPreviewDto) {
@@ -74,40 +95,55 @@ export class VideoProcessorService {
       },
     });
 
-    this.eventEmitter.emit('thumbnail_processed', {
-      userId: video.creatorId,
-      videoId: video.id,
-      thumbnails: video.thumbnails,
-    });
+    this.eventEmitter.emit(
+      'thumbnail_processed',
+      new ThumbnailProcessedEvent(video.creatorId, video.id, video.thumbnails),
+    );
   }
 
-  async publishVideo(videoId: string) {
+  async videoProcessFinished(videoId: string) {
     const video = await this.prisma.video.update({
       where: { id: videoId },
       data: {
-        isPublished: true,
         status: 'Registered',
         processingStatus: 'VideoProcessed',
       },
       include: {
         thumbnails: { select: { imageFileId: true, url: true } },
         videoPreviewThumbnail: { select: { url: true } },
+        processedVideos: true,
       },
     });
 
-    this.eventEmitter.emit('video_status_changed', {
-      userId: video.creatorId,
-      videoId: video.id,
-      status: video.status,
-    });
+    this.eventEmitter.emit(
+      'video_status_changed',
+      new VideoStatusChangedEvent(
+        video.creatorId,
+        video.id,
+        video.processingStatus,
+      ),
+    );
 
-    this.eventEmitter.emit('sync_video', {
-      ...video,
-      thumbnailUrl: video?.thumbnails?.find(
-        (x) => x.imageFileId === video.thumbnailId,
-      )?.url,
-      previewThumbnailUrl: video?.videoPreviewThumbnail?.url,
-    });
+    this.eventEmitter.emit(
+      'sync_video',
+      new SyncVideoEvent(
+        video,
+        video?.thumbnails?.find(
+          (x) => x.imageFileId === video.thumbnailId,
+        )?.url,
+        video?.videoPreviewThumbnail?.url,
+      ),
+    );
+
+    this.eventEmitter.emit(
+      'update_video_resources',
+      new UpdateVideoResourcesEvent(
+        video.id,
+        video.processedVideos,
+        false,
+        video.updatedAt,
+      ),
+    );
   }
 
   async setProcessingStatus(payload: SetStatusDto) {
@@ -116,11 +152,14 @@ export class VideoProcessorService {
       data: { processingStatus: payload.status },
     });
 
-    this.eventEmitter.emit('video_status_changed', {
-      userId: video.creatorId,
-      videoId: video.id,
-      status: video.processingStatus,
-    });
+    this.eventEmitter.emit(
+      'video_status_changed',
+      new VideoStatusChangedEvent(
+        video.creatorId,
+        video.id,
+        video.processingStatus,
+      ),
+    );
 
     return video;
   }

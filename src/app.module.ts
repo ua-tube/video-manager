@@ -7,6 +7,11 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
 import { LoggingInterceptor } from './common/interceptors';
 import { HealthModule } from './health/health.module';
 import { VideoProcessorModule } from './video-processor/video-processor.module';
+import { HistoryModule } from './history/history.module';
+import { CommunityModule } from './community/community.module';
+import { LibraryModule } from './library/library.module';
+import { StorageModule } from './storage/storage.module';
+import { VideoStoreModule } from './video-store/video-store.module';
 
 @Module({
   imports: [
@@ -30,10 +35,15 @@ import { VideoProcessorModule } from './video-processor/video-processor.module';
         DATABASE_URL: Joi.string().required(),
       }),
     }),
+    HealthModule,
     VideoManagerModule,
     CreatorsModule,
-    HealthModule,
     VideoProcessorModule,
+    HistoryModule,
+    CommunityModule,
+    LibraryModule,
+    StorageModule,
+    VideoStoreModule,
   ],
   providers: [
     {

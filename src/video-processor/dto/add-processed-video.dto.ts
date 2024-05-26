@@ -5,6 +5,6 @@ export class AddProcessedVideoDto {
   label: string;
   width: number;
   height: number;
-  lengthSeconds: number;
+  lengthSeconds?: number;
   size: string | number | bigint;
 }

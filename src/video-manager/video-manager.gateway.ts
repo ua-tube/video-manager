@@ -10,6 +10,11 @@ import { isEmpty } from 'class-validator';
 import axios from 'axios';
 import { ConfigService } from '@nestjs/config';
 import { OnEvent } from '@nestjs/event-emitter';
+import {
+  ThumbnailProcessedEvent,
+  VideoStatusChangedEvent,
+  VideoStepProcessedEvent,
+} from '../common/events';
 
 @WebSocketGateway({
   cors: { origin: process.env.CLIENT_URL },
@@ -69,11 +74,7 @@ export class VideoManagerGateway
   }
 
   @OnEvent('video_status_changed', { async: true, promisify: true })
-  async handleVideoStatusChanged(payload: {
-    userId: string;
-    videoId: string;
-    status: string;
-  }) {
+  async handleVideoStatusChanged(payload: VideoStatusChangedEvent) {
     this.logger.log(`video_status_changed emit to user (${payload.userId})`);
     this.server
       .to(this.getRoomName(payload.userId))
@@ -84,11 +85,7 @@ export class VideoManagerGateway
   }
 
   @OnEvent('thumbnail_processed', { async: true, promisify: true })
-  async handleThumbnailProcessed(payload: {
-    userId: string;
-    videoId: string;
-    thumbnails: any[];
-  }) {
+  async handleThumbnailProcessed(payload: ThumbnailProcessedEvent) {
     this.logger.log(`thumbnail_processed emit to user (${payload.userId})`);
     this.server
       .to(this.getRoomName(payload.userId))
@@ -99,11 +96,7 @@ export class VideoManagerGateway
   }
 
   @OnEvent('video_step_processed', { async: true, promisify: true })
-  async handleVideoStepProcessed(payload: {
-    userId: string;
-    videoId: string;
-    label: string;
-  }) {
+  async handleVideoStepProcessed(payload: VideoStepProcessedEvent) {
     this.logger.log(`video_step_processed emit to user (${payload.userId})`);
     this.server
       .to(this.getRoomName(payload.userId))

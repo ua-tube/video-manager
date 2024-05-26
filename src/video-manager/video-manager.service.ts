@@ -31,13 +31,15 @@ import {
   LibraryCreateVideoEvent,
   LibraryUpdateVideoEvent,
   SearchCreateVideoEvent,
+  SearchUpdateVideoEvent,
+  UpdateVideoResourcesEvent,
   VideoStoreCreateVideoEvent,
   VideoStoreUpdateVideoEvent,
 } from '../common/events';
 import { OnEvent } from '@nestjs/event-emitter';
 import axios from 'axios';
 import { ConfigService } from '@nestjs/config';
-import { Video } from '@prisma/client';
+import { Video, VideoMetrics } from '@prisma/client';
 
 @Injectable()
 export class VideoManagerService implements OnApplicationBootstrap {
@@ -76,6 +78,13 @@ export class VideoManagerService implements OnApplicationBootstrap {
   }
 
   async createVideo(creatorId: string, dto: CreateVideoDto) {
+    const creator = await this.prisma.creator.findUnique({
+      where: { id: creatorId },
+      select: { id: true },
+    });
+
+    if (!creator) throw new BadRequestException('Creator does not exists');
+
     const video = await this.prisma.video.create({
       data: {
         creatorId,
@@ -100,8 +109,12 @@ export class VideoManagerService implements OnApplicationBootstrap {
     const video = await this.prisma.video.findUnique({
       where: { id, status: { not: 'Unregistered' } },
       include: {
-        processedVideos: true,
+        processedVideos: {
+          omit: { size: true },
+          orderBy: { createdAt: 'asc' },
+        },
         thumbnails: true,
+        metrics: true,
       },
     });
 
@@ -109,7 +122,10 @@ export class VideoManagerService implements OnApplicationBootstrap {
       throw new NotFoundException(`Video ${id} not found`);
     }
 
-    return video;
+    return {
+      ...video,
+      metrics: this.serializeMetrics(video?.metrics),
+    };
   }
 
   async getVideos(creatorId: string, pagination: PaginationDto, sort: SortDto) {
@@ -117,8 +133,12 @@ export class VideoManagerService implements OnApplicationBootstrap {
       this.prisma.video.findMany({
         where: { creatorId, status: { not: 'Unregistered' } },
         include: {
-          processedVideos: true,
+          processedVideos: {
+            omit: { size: true },
+            orderBy: { createdAt: 'asc' },
+          },
           thumbnails: true,
+          metrics: true,
         },
         take: pagination.perPage,
         skip: (pagination.page - 1) * pagination.perPage,
@@ -129,7 +149,13 @@ export class VideoManagerService implements OnApplicationBootstrap {
       }),
     ]);
 
-    return { videos, count };
+    return {
+      videos: videos.map((v) => ({
+        ...v,
+        metrics: this.serializeMetrics(v?.metrics),
+      })),
+      count,
+    };
   }
 
   async getVideoUploadToken(creatorId: string, videoId: string) {
@@ -220,6 +246,18 @@ export class VideoManagerService implements OnApplicationBootstrap {
     }
   }
 
+  private serializeMetrics(metrics?: VideoMetrics) {
+    return metrics
+      ? {
+          ...metrics,
+          viewsCount: `${metrics.viewsCount}`,
+          likesCount: `${metrics.likesCount}`,
+          dislikesCount: `${metrics.dislikesCount}`,
+          commentsCount: `${metrics.commentsCount}`,
+        }
+      : {};
+  }
+
   private emitCreateVideo(video: Video, creatorId: string) {
     const pattern = 'create_video';
     this.videoStoreClient.emit(pattern, new VideoStoreCreateVideoEvent(video));
@@ -246,10 +284,16 @@ export class VideoManagerService implements OnApplicationBootstrap {
     this.historyClient.emit(pattern, new HistoryUpdateVideoEvent(data));
     this.searchClient.emit(
       pattern,
-      new SearchCreateVideoEvent({
+      new SearchUpdateVideoEvent({
         ...data,
         tags: data?.tags?.split(','),
       }),
     );
+  }
+
+  @OnEvent('update_video_resources')
+  private async handleUpdateVideoResources(data: UpdateVideoResourcesEvent) {
+    const pattern = 'update_video_resources';
+    this.videoStoreClient.emit(pattern, data);
   }
 }
