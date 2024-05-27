@@ -40,6 +40,7 @@ import { OnEvent } from '@nestjs/event-emitter';
 import axios from 'axios';
 import { ConfigService } from '@nestjs/config';
 import { Video, VideoMetrics } from '@prisma/client';
+import { paginate } from './utils';
 
 @Injectable()
 export class VideoManagerService implements OnApplicationBootstrap {
@@ -149,13 +150,14 @@ export class VideoManagerService implements OnApplicationBootstrap {
       }),
     ]);
 
-    return {
-      videos: videos.map((v) => ({
+    return paginate({
+      data: videos.map((v) => ({
         ...v,
         metrics: this.serializeMetrics(v?.metrics),
       })),
       count,
-    };
+      ...pagination,
+    });
   }
 
   async getVideoUploadToken(creatorId: string, videoId: string) {
@@ -196,11 +198,14 @@ export class VideoManagerService implements OnApplicationBootstrap {
       throw new ForbiddenException('Is not your video');
 
     try {
-      await this.prisma.video.update({
+      const video = await this.prisma.video.update({
         where: { id: videoId },
         data: dto,
       });
+
+      await this.syncVideo(video);
       this.logger.log(`Video ${videoId} info updated`);
+
       return { status: true };
     } catch (e) {
       this.logger.error(e);
@@ -277,7 +282,7 @@ export class VideoManagerService implements OnApplicationBootstrap {
   }
 
   @OnEvent('sync_video')
-  private async handleSyncVideo(data: SyncVideoDto) {
+  private async syncVideo(data: SyncVideoDto) {
     const pattern = 'update_video';
     this.videoStoreClient.emit(pattern, new VideoStoreUpdateVideoEvent(data));
     this.libraryClient.emit(pattern, new LibraryUpdateVideoEvent(data));
@@ -292,7 +297,7 @@ export class VideoManagerService implements OnApplicationBootstrap {
   }
 
   @OnEvent('update_video_resources')
-  private async handleUpdateVideoResources(data: UpdateVideoResourcesEvent) {
+  private async updateVideoResources(data: UpdateVideoResourcesEvent) {
     const pattern = 'update_video_resources';
     this.videoStoreClient.emit(pattern, data);
   }

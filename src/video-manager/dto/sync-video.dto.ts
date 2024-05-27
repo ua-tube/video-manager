@@ -6,7 +6,7 @@ export class SyncVideoDto {
   title: string;
   description: string;
   tags: string;
-  thumbnailUrl: string;
+  thumbnailUrl?: string;
   previewThumbnailUrl?: string;
   lengthSeconds: number;
   visibility: VideoVisibility;

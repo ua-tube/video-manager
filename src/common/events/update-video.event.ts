@@ -4,7 +4,7 @@ interface UpdateVideoConstructor {
   id: string;
   title: string;
   description: string;
-  thumbnailUrl: string;
+  thumbnailUrl?: string;
   previewThumbnailUrl?: string;
   lengthSeconds: number;
   visibility: VideoVisibility;

@@ -5,8 +5,8 @@ import {
   Get,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
-  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -47,7 +47,7 @@ export class VideoManagerController {
     return this.videoManagerService.getVideoUploadToken(userId, videoId);
   }
 
-  @Put('videos/:videoId')
+  @Patch('videos/:videoId')
   updateVideo(
     @Param('videoId', ParseUUIDPipe) videoId: string,
     @Body() body: UpdateVideoDto,

@@ -53,7 +53,6 @@ export class CreatorsService implements OnApplicationBootstrap {
         await this.prisma.creator.create({ data: payload });
         this.usersClient.emit('creator_creation_success', {
           userId: payload.id,
-          nickname: payload.nickname,
         });
         this.logger.log(`Creator (${payload.id}) is created`);
       } catch {

@@ -1,24 +1,28 @@
-import { IsIn, IsNotEmpty, IsString, IsUUID } from 'class-validator';
+import { IsIn, IsString, IsUUID } from 'class-validator';
 import { VideoVisibility } from '@prisma/client';
+import { CanBeNull, CanBeUndefined } from '../../common/decorators';
 
 export class UpdateVideoDto {
-  @IsNotEmpty()
+  @CanBeUndefined()
   @IsString()
-  title: string;
+  title?: string;
 
-  @IsNotEmpty()
+  @CanBeUndefined()
+  @CanBeNull()
   @IsString()
-  description: string;
+  description?: string;
 
-  @IsNotEmpty()
+  @CanBeUndefined()
+  @CanBeNull()
   @IsString()
-  tags: string;
+  tags?: string;
 
-  @IsNotEmpty()
+  @CanBeUndefined()
+  @CanBeNull()
   @IsUUID(4)
-  thumbnailId: string;
+  thumbnailId?: string;
 
-  @IsNotEmpty()
+  @CanBeUndefined()
   @IsIn(Object.keys(VideoVisibility))
-  visibility: VideoVisibility;
+  visibility?: VideoVisibility;
 }
