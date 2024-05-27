@@ -6,3 +6,4 @@ export * from './update-video-resources.event';
 export * from './video-status-changed.event';
 export * from './thumbnail-processed.event';
 export * from './video-step-processed.event';
+export * from './set-video-is-published.event';

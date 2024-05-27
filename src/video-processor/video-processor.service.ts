@@ -8,6 +8,7 @@ import {
 } from './dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
+  SetVideoIsPublishedEvent,
   SyncVideoEvent,
   ThumbnailProcessedEvent,
   UpdateVideoResourcesEvent,
@@ -30,7 +31,7 @@ export class VideoProcessorService {
       });
     }
 
-    const video = await this.prisma.processedVideo.create({
+    const processedVideo = await this.prisma.processedVideo.create({
       data: {
         videoId: payload.videoId,
         videoFileId: payload.videoFileId,
@@ -40,23 +41,31 @@ export class VideoProcessorService {
         height: payload?.height || 0,
         size: BigInt(payload?.size || 0),
       },
-      select: {
+      include: {
         video: {
           select: {
-            id: true,
             creatorId: true,
           },
         },
-        label: true,
       },
     });
 
     this.eventEmitter.emit(
       'video_step_processed',
       new VideoStepProcessedEvent(
-        video.video.creatorId,
-        video.video.id,
-        video.label,
+        processedVideo.video.creatorId,
+        processedVideo.videoId,
+        processedVideo.label,
+      ),
+    );
+
+    this.eventEmitter.emit(
+      'update_video_resources',
+      new UpdateVideoResourcesEvent(
+        processedVideo.videoId,
+        [processedVideo],
+        true,
+        new Date(),
       ),
     );
   }
@@ -136,13 +145,8 @@ export class VideoProcessorService {
     );
 
     this.eventEmitter.emit(
-      'update_video_resources',
-      new UpdateVideoResourcesEvent(
-        video.id,
-        video.processedVideos,
-        false,
-        video.updatedAt,
-      ),
+      'set_video_is_published',
+      new SetVideoIsPublishedEvent(video.id, video.processedVideos),
     );
   }
 

@@ -36,6 +36,7 @@ export class CreateVideoEvent implements CreateVideoConstructor {
 interface LibraryCreateVideoConstructor extends CreateVideoConstructor {
   description: string;
   tags: string;
+  status: VideoStatus;
 }
 
 export class LibraryCreateVideoEvent
@@ -44,11 +45,13 @@ export class LibraryCreateVideoEvent
 {
   description: string;
   tags: string;
+  status: VideoStatus;
 
   constructor(video: LibraryCreateVideoConstructor) {
     super(video);
     this.description = video.description;
     this.tags = video.tags;
+    this.status = video.status;
   }
 }
 

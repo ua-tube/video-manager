@@ -7,13 +7,7 @@ import {
   NotFoundException,
   OnApplicationBootstrap,
 } from '@nestjs/common';
-import {
-  CreateVideoDto,
-  PaginationDto,
-  SortDto,
-  SyncVideoDto,
-  UpdateVideoDto,
-} from './dto';
+import { CreateVideoDto, PaginationDto, SortDto, UpdateVideoDto } from './dto';
 import { PrismaService } from '../prisma';
 import { JwtService } from '@nestjs/jwt';
 import {
@@ -32,6 +26,7 @@ import {
   LibraryUpdateVideoEvent,
   SearchCreateVideoEvent,
   SearchUpdateVideoEvent,
+  SyncVideoEvent,
   UpdateVideoResourcesEvent,
   VideoStoreCreateVideoEvent,
   VideoStoreUpdateVideoEvent,
@@ -282,7 +277,7 @@ export class VideoManagerService implements OnApplicationBootstrap {
   }
 
   @OnEvent('sync_video')
-  private async syncVideo(data: SyncVideoDto) {
+  private async syncVideo(data: SyncVideoEvent) {
     const pattern = 'update_video';
     this.videoStoreClient.emit(pattern, new VideoStoreUpdateVideoEvent(data));
     this.libraryClient.emit(pattern, new LibraryUpdateVideoEvent(data));
