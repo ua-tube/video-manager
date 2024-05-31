@@ -25,10 +25,12 @@ export class VideoProcessorService {
 
   async addProcessedVideo(payload: AddProcessedVideoDto) {
     if (payload?.lengthSeconds) {
-      await this.prisma.video.update({
+      const video = await this.prisma.video.update({
         where: { id: payload.videoId },
         data: { lengthSeconds: payload.lengthSeconds },
       });
+
+      this.eventEmitter.emit('sync_video', new SyncVideoEvent(video));
     }
 
     const processedVideo = await this.prisma.processedVideo.create({
@@ -120,7 +122,6 @@ export class VideoProcessorService {
       include: {
         thumbnails: { select: { imageFileId: true, url: true } },
         videoPreviewThumbnail: { select: { url: true } },
-        processedVideos: true,
       },
     });
 
@@ -146,7 +147,7 @@ export class VideoProcessorService {
 
     this.eventEmitter.emit(
       'set_video_is_published',
-      new SetVideoIsPublishedEvent(video.id, video.processedVideos),
+      new SetVideoIsPublishedEvent(video.id),
     );
   }
 

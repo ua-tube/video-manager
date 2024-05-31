@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma';
 import { UpdateVideoViewsMetricsDto } from './dto';
 
@@ -9,13 +9,19 @@ export class HistoryService {
   constructor(private readonly prisma: PrismaService) {}
 
   async updateVideoViewsMetrics(payload: UpdateVideoViewsMetricsDto) {
+    this.logger.log('Video metrics update is called');
+
     const video = await this.prisma.video.findUnique({
       where: { id: payload.videoId },
       select: { status: true },
     });
 
-    if (!video || video.status === 'Unregistered')
-      throw new BadRequestException();
+    if (!video || video.status === 'Unregistered') {
+      this.logger.warn(
+        `Video (${payload.videoId}) does not exists or unregistered`,
+      );
+      return;
+    }
 
     await this.prisma.videoMetrics.update({
       where: { videoId: payload.videoId },

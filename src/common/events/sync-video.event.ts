@@ -4,7 +4,7 @@ import { SyncVideoDto } from '../../video-manager/dto';
 export class SyncVideoEvent extends SyncVideoDto {
   constructor(
     video: Video,
-    thumbnailUrl: string,
+    thumbnailUrl?: string,
     previewThumbnailUrl?: string,
   ) {
     super();
