@@ -13,13 +13,23 @@ export class HistoryService {
 
     const video = await this.prisma.video.findUnique({
       where: { id: payload.videoId },
-      select: { status: true },
+      select: { 
+        status: true,
+        metrics: {
+          select: { viewsCountUpdatedAt: true }
+        }
+       },
     });
 
     if (!video || video.status === 'Unregistered') {
       this.logger.warn(
         `Video (${payload.videoId}) does not exists or unregistered`,
       );
+      return;
+    }
+
+    if (payload.updatedAt <= video.metrics.viewsCountUpdatedAt) {
+      this.logger.warn('Video metrics update is too old, skip...');
       return;
     }
 

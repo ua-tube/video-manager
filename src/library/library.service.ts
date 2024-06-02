@@ -11,11 +11,23 @@ export class LibraryService {
   async updateVideoVotesMetrics(payload: UpdateVideoVotesMetricsDto) {
     const video = await this.prisma.video.findUnique({
       where: { id: payload.videoId },
-      select: { status: true },
+      select: { 
+        status: true,
+        metrics: {
+          select: { votesCountUpdatedAt: true }
+        }
+       },
     });
 
-    if (!video || video.status === 'Unregistered')
-      throw new BadRequestException();
+    if (!video || video.status === 'Unregistered') {
+      this.logger.warn(`Video (${payload.videoId}) does not exists or unregistered`);
+      return;
+    }
+
+    if (payload.updatedAt <= video.metrics.votesCountUpdatedAt) {
+      this.logger.warn('Video metrics update is too old, skip...');
+      return;
+    }
 
     await this.prisma.videoMetrics.update({
       where: { videoId: payload.videoId },
