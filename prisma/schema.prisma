@@ -37,7 +37,6 @@ model Video {
   originalVideoFileId   String                @default(uuid()) @map("original_video_file_id") @db.Uuid
   originalVideoFileName String?               @map("original_video_file_name")
   originalVideoUrl      String?               @map("original_video_url")
-  processedVideos       ProcessedVideo[]
 
   thumbnailStatus       VideoThumbnailStatus   @map("thumbnail_status")
   thumbnails            VideoThumbnail[]
@@ -63,20 +62,6 @@ model VideoMetrics {
   votesCountUpdatedAt    DateTime? @map("votes_count_updated_at") @db.Timestamptz(6)
 
   @@map("video_metrics")
-}
-
-model ProcessedVideo {
-  id        String   @id @default(uuid()) @db.Uuid
-  videoId   String   @map("video_id") @db.Uuid
-  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
-  label     String
-  width     Int
-  height    Int
-  size      BigInt
-  url       String
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  @@map("processed_videos")
 }
 
 model VideoThumbnail {

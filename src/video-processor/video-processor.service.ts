@@ -11,7 +11,6 @@ import {
   SetVideoIsPublishedEvent,
   SyncVideoEvent,
   ThumbnailProcessedEvent,
-  UpdateVideoResourcesEvent,
   VideoStatusChangedEvent,
   VideoStepProcessedEvent,
 } from '../common/events';
@@ -33,40 +32,17 @@ export class VideoProcessorService {
       this.eventEmitter.emit('sync_video', new SyncVideoEvent(video));
     }
 
-    const processedVideo = await this.prisma.processedVideo.create({
-      data: {
-        videoId: payload.videoId,
-        label: payload.label,
-        url: payload.url,
-        width: payload?.width || 0,
-        height: payload?.height || 0,
-        size: BigInt(payload?.size || 0),
-      },
-      include: {
-        video: {
-          select: {
-            creatorId: true,
-          },
-        },
-      },
+    const video = await this.prisma.video.findUnique({
+      where: { id: payload.videoId },
+      select: { creatorId: true },
     });
 
     this.eventEmitter.emit(
       'video_step_processed',
       new VideoStepProcessedEvent(
-        processedVideo.video.creatorId,
-        processedVideo.videoId,
-        processedVideo.label,
-      ),
-    );
-
-    this.eventEmitter.emit(
-      'update_video_resources',
-      new UpdateVideoResourcesEvent(
-        processedVideo.videoId,
-        [processedVideo],
-        true,
-        new Date(),
+        video.creatorId,
+        payload.videoId,
+        payload.label,
       ),
     );
   }

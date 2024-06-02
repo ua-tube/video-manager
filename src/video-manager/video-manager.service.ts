@@ -29,7 +29,6 @@ import {
   SearchUpdateVideoEvent,
   SetVideoIsPublishedEvent,
   SyncVideoEvent,
-  UpdateVideoResourcesEvent,
   VideoStoreCreateVideoEvent,
   VideoStoreUpdateVideoEvent,
 } from '../common/events';
@@ -122,10 +121,6 @@ export class VideoManagerService implements OnModuleInit {
     const video = await this.prisma.video.findUnique({
       where: { id, status: { not: 'Unregistered' } },
       include: {
-        processedVideos: {
-          omit: { size: true },
-          orderBy: { createdAt: 'asc' },
-        },
         thumbnails: true,
         metrics: true,
       },
@@ -146,10 +141,6 @@ export class VideoManagerService implements OnModuleInit {
       this.prisma.video.findMany({
         where: { creatorId, status: { not: 'Unregistered' } },
         include: {
-          processedVideos: {
-            omit: { size: true },
-            orderBy: { createdAt: 'asc' },
-          },
           thumbnails: true,
           metrics: true,
         },
@@ -299,11 +290,6 @@ export class VideoManagerService implements OnModuleInit {
         tags: data?.tags?.split(',') || [],
       }),
     );
-  }
-
-  @OnEvent('update_video_resources')
-  private async updateVideoResources(data: UpdateVideoResourcesEvent) {
-    this.videoStoreClient.emit('update_video_resources', JSON.stringify(data));
   }
 
   @OnEvent('set_video_is_published')
