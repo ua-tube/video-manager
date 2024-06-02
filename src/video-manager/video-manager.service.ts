@@ -247,7 +247,7 @@ export class VideoManagerService implements OnModuleInit {
       const data = { videoId };
 
       if (video.processingStatus === 'VideoBeingProcessed') {
-        this.videoProcessorClient.emit('cancel-process', data);
+        this.videoProcessorClient.emit('process_video_cancel', data);
       }
 
       this.communityClient.emit('unregister_forum', data);
