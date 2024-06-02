@@ -66,16 +66,15 @@ model VideoMetrics {
 }
 
 model ProcessedVideo {
-  id          String   @id @default(uuid()) @db.Uuid
-  videoFileId String   @map("video_file_id") @db.Uuid
-  videoId     String   @map("video_id") @db.Uuid
-  video       Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
-  label       String
-  width       Int
-  height      Int
-  size        BigInt
-  url         String
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  id        String   @id @default(uuid()) @db.Uuid
+  videoId   String   @map("video_id") @db.Uuid
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  label     String
+  width     Int
+  height    Int
+  size      BigInt
+  url       String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@map("processed_videos")
 }

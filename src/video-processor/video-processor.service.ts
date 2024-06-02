@@ -36,7 +36,6 @@ export class VideoProcessorService {
     const processedVideo = await this.prisma.processedVideo.create({
       data: {
         videoId: payload.videoId,
-        videoFileId: payload.videoFileId,
         label: payload.label,
         url: payload.url,
         width: payload?.width || 0,
