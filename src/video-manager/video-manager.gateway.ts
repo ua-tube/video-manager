@@ -19,6 +19,7 @@ import {
 @WebSocketGateway({
   cors: { origin: process.env.CLIENT_URL },
   transports: ['websocket', 'polling'],
+  path: '/socket/video-manager',
   namespace: 'video-manager',
 })
 export class VideoManagerGateway
