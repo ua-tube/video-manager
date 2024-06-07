@@ -37,14 +37,10 @@ export class VideoProcessorService {
       select: { creatorId: true },
     });
 
-    this.eventEmitter.emit(
-      'video_step_processed',
-      new VideoStepProcessedEvent(
-        video.creatorId,
-        payload.videoId,
-        payload.label,
-      ),
-    );
+    this.emitEvent(video.creatorId, {
+      event: 'video_step_processed',
+      data: new VideoStepProcessedEvent(payload.videoId, payload.label),
+    });
   }
 
   async addPreview(payload: AddPreviewDto) {
@@ -81,10 +77,10 @@ export class VideoProcessorService {
       },
     });
 
-    this.eventEmitter.emit(
-      'thumbnail_processed',
-      new ThumbnailProcessedEvent(video.creatorId, video.id, video.thumbnails),
-    );
+    this.emitEvent(video.creatorId, {
+      event: 'thumbnail_processed',
+      data: new ThumbnailProcessedEvent(video.id, video.thumbnails),
+    });
   }
 
   async videoProcessFinished(videoId: string) {
@@ -100,14 +96,10 @@ export class VideoProcessorService {
       },
     });
 
-    this.eventEmitter.emit(
-      'video_status_changed',
-      new VideoStatusChangedEvent(
-        video.creatorId,
-        video.id,
-        video.processingStatus,
-      ),
-    );
+    this.emitEvent(video.creatorId, {
+      event: 'video_status_changed',
+      data: new VideoStatusChangedEvent(video.id, video.processingStatus),
+    });
 
     this.eventEmitter.emit(
       'sync_video',
@@ -132,15 +124,21 @@ export class VideoProcessorService {
       data: { processingStatus: payload.status },
     });
 
-    this.eventEmitter.emit(
-      'video_status_changed',
-      new VideoStatusChangedEvent(
-        video.creatorId,
-        video.id,
-        video.processingStatus,
-      ),
-    );
+    this.emitEvent(video.creatorId, {
+      event: 'video_status_changed',
+      data: new VideoStatusChangedEvent(video.id, video.processingStatus),
+    });
 
     return video;
+  }
+
+  private emitEvent(
+    userId: string,
+    data: {
+      event: string;
+      data: object;
+    },
+  ) {
+    this.eventEmitter.emit(`processor.${userId}`, data);
   }
 }

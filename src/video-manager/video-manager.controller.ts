@@ -8,12 +8,13 @@ import {
   Patch,
   Post,
   Query,
+  Sse,
   UseGuards,
 } from '@nestjs/common';
 import { VideoManagerService } from './video-manager.service';
 import { UserId } from '../common/decorators';
 import { CreateVideoDto, PaginationDto, SortDto, UpdateVideoDto } from './dto';
-import { AuthUserGuard } from '../common/guards';
+import { AuthUserGuard, AuthUserSseGuard } from '../common/guards';
 
 @UseGuards(AuthUserGuard)
 @Controller('video-manager')
@@ -62,5 +63,11 @@ export class VideoManagerController {
     @UserId() userId: string,
   ) {
     return this.videoManagerService.unregisterVideo(videoId, userId);
+  }
+
+  @UseGuards(AuthUserSseGuard)
+  @Sse('sse')
+  sse(@UserId() userId: string) {
+    return this.videoManagerService.sse(userId);
   }
 }

@@ -6,7 +6,6 @@ import helmet from 'helmet';
 import { ConfigService } from '@nestjs/config';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { mw } from 'request-ip';
-import { RedisSocketIoAdapter } from './common/adapters';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -34,10 +33,6 @@ async function bootstrap() {
   app.setGlobalPrefix('/api');
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.enableShutdownHooks();
-
-  app.useWebSocketAdapter(
-    new RedisSocketIoAdapter(app, configService.get<string>('REDIS_URL')),
-  );
 
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.RMQ,

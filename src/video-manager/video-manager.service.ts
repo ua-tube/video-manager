@@ -32,9 +32,10 @@ import {
   VideoStoreCreateVideoEvent,
   VideoStoreUpdateVideoEvent,
 } from '../common/events';
-import { OnEvent } from '@nestjs/event-emitter';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { VideoMetrics } from '@prisma/client';
 import { paginate } from './utils';
+import { fromEvent, map } from 'rxjs';
 
 @Injectable()
 export class VideoManagerService implements OnModuleInit {
@@ -51,6 +52,7 @@ export class VideoManagerService implements OnModuleInit {
   constructor(
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
+    private readonly eventEmitter: EventEmitter2,
     @Inject(VIDEO_PROCESSOR_SVC)
     private readonly videoProcessorClient: ClientRMQ,
     @Inject(LIBRARY_SVC)
@@ -263,6 +265,12 @@ export class VideoManagerService implements OnModuleInit {
       this.logger.error(e);
       return { status: false };
     }
+  }
+
+  sse(userId: string) {
+    return fromEvent(this.eventEmitter, `processor.${userId}`).pipe(
+      map((data) => JSON.stringify(data)),
+    );
   }
 
   private serializeMetrics(metrics?: VideoMetrics) {

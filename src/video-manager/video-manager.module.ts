@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { VideoManagerService } from './video-manager.service';
 import { PrismaModule } from '../prisma';
 import { JwtModule } from '@nestjs/jwt';
-import { VideoManagerGateway } from './video-manager.gateway';
 import { ConfigService } from '@nestjs/config';
 import { VideoManagerController } from './video-manager.controller';
 import { ClientsModule, Transport } from '@nestjs/microservices';
@@ -48,6 +47,6 @@ import { videoManagerMicroserviceClients } from '../common/constants';
     ),
   ],
   controllers: [VideoManagerController],
-  providers: [VideoManagerService, VideoManagerGateway],
+  providers: [VideoManagerService],
 })
 export class VideoManagerModule {}
